@@ -47,14 +47,17 @@ export class DecryptionInterceptor implements NestInterceptor {
 
   isValidMessageData(message: Message): boolean {
     if (!message.data || typeof message.data !== 'string') {
+      console.error('Invalid data structure:', message);
       return false;
     }
 
     if (!message.iv || typeof message.iv !== 'string') {
+      console.error('Invalid IV structure:', message);
       return false;
     }
 
     if (!message.key || typeof message.key !== 'string') {
+      console.error('Invalid message structure:', message);
       return false;
     }
 

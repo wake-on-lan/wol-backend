@@ -6,11 +6,14 @@ import {
   UseGuards,
   Request,
   ValidationPipe,
+  UseInterceptors,
 } from '@nestjs/common';
 import * as keysService from './keys.service';
 import { ServerContextService } from '../servercontext/server-context.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RegisterKeyDto } from './dto/register-key.dto';
+import { EncryptionInterceptor } from 'src/interceptors/encrypt.interceptor';
+import { DecryptionInterceptor } from 'src/interceptors/decrypt.interceptor';
 
 @Controller('keys')
 export class KeysController {
@@ -50,6 +53,7 @@ export class KeysController {
 
   @UseGuards(JwtAuthGuard)
   @Get('my-key')
+  @UseInterceptors(EncryptionInterceptor)
   async getMyKey(@Request() req: keysService.AuthenticatedRequest) {
     const key = await this.keysService.getUserPublicKey(req.user.userId);
 

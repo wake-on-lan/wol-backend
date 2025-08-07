@@ -4,12 +4,12 @@ import { ServerKey } from 'src/database/entities/server-key.entity';
 import { KeyPair } from './crypto.service';
 
 export class CryptoUtil {
-      public static async encryptRSA(
+  public static async encryptRSA(
     data: string,
     userPublicKey: string,
   ): Promise<string> {
     try {
-      const buffer = Buffer.from(data, 'utf-8');
+      const buffer = Buffer.from(data, 'base64');
 
       // Use user's public key to encrypt data so only user can decrypt with their private key
       const encrypted = crypto.publicEncrypt(
@@ -47,7 +47,7 @@ export class CryptoUtil {
         buffer,
       );
 
-      return decrypted.toString('utf-8');
+      return decrypted.toString('base64');
     } catch (error) {
       throw new HttpException(
         'RSA decryption failed: ' + error.message,

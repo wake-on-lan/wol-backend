@@ -4,7 +4,6 @@ import { Repository, MoreThan } from 'typeorm';
 import * as crypto from 'crypto';
 import { UserPublicKey } from '../database/entities/user-public-key.entity';
 import { Message } from 'src/interceptors/interceptor.types';
-import { ServerKey } from 'src/database/entities/server-key.entity';
 import { ServerContextService } from 'src/servercontext/server-context.service';
 import { CryptoUtil } from './crypto.util';
 
@@ -42,11 +41,12 @@ export class CryptoService {
 
       const decryptedKey = await CryptoUtil.decryptRSA(key, serverKey);
       const decryptedIv = await CryptoUtil.decryptRSA(iv, serverKey);
-
+      console.log('Decrypted key:', decryptedKey);
+      console.log('Decrypted IV:', decryptedIv);
       const decipher = crypto.createDecipheriv(
         this.ALGORITHM,
-        Buffer.from(decryptedKey, 'hex'),
-        Buffer.from(decryptedIv, 'hex'),
+        Buffer.from(decryptedKey, 'base64'),
+        Buffer.from(decryptedIv, 'base64'),
       );
       let decrypted = decipher.update(data, 'base64', 'utf-8');
       decrypted += decipher.final('utf-8');
@@ -72,7 +72,6 @@ export class CryptoService {
 
       const aesKey = crypto.randomBytes(32);
       const iv = crypto.randomBytes(16);
-
       const cipher = crypto.createCipheriv(this.ALGORITHM, aesKey, iv);
       let encrypted = cipher.update(data, 'utf-8', 'base64');
       encrypted += cipher.final('base64');
@@ -80,11 +79,11 @@ export class CryptoService {
       return {
         data: encrypted,
         key: await CryptoUtil.encryptRSA(
-          aesKey.toString('hex'),
+          aesKey.toString('base64'),
           userPublicKeyEntity.publicKeyPem,
         ),
         iv: await CryptoUtil.encryptRSA(
-          iv.toString('hex'),
+          iv.toString('base64'),
           userPublicKeyEntity.publicKeyPem,
         ),
       };
