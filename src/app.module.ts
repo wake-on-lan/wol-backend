@@ -12,9 +12,10 @@ import { DatabaseModule } from './database/database.module';
 import { createDatabaseConfig } from './database/database.config';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { ServerKeySubscriber } from './database/entities/server-key.subscriber';
-import { ServerContextModule } from './servercontext/server-context.module';
 import config from './config';
 import { EncryptionModule } from './database/encryption/encryption.module';
+import { CryptoModule } from './crypto/crypto.module';
+import { ServerContextModule } from './servercontext/server-context.module';
 
 @Module({
   imports: [
@@ -28,13 +29,14 @@ import { EncryptionModule } from './database/encryption/encryption.module';
         ...createDatabaseConfig(configService),
       }),
     }),
+    ServerContextModule,
     AuthModule,
     KeysModule,
     EncryptionModule,
-    ServerContextModule,
     CommandsModule,
     SchedulerModule,
     DatabaseModule,
+    CryptoModule,
   ],
   controllers: [AppController],
   providers: [

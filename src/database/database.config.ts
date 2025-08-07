@@ -5,11 +5,11 @@ import { UserPublicKey } from './entities/user-public-key.entity';
 import { ServerKey } from './entities/server-key.entity';
 
 export const createDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => ({
-  type: configService.get<string>('DATABASE_TYPE', 'sqlite') as any,
-  database: configService.get<string>('DATABASE_PATH', 'encrypted-relay.db'),
+  type: configService.get<string>('database.type') as any,
+  database: configService.get<string>('database.name'),
   entities: [User, UserPublicKey, ServerKey],
-  synchronize: configService.get<boolean>('DATABASE_SYNCHRONIZE', true),
-  logging: configService.get<boolean>('DATABASE_LOGGING', false),
+  synchronize: configService.get<boolean>('database.synchronize'),
+  logging: configService.get<boolean>('database.logging'),
 });
 
 // Legacy export for backward compatibility

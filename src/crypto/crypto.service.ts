@@ -19,7 +19,7 @@ export class CryptoService {
   constructor(
     @InjectRepository(UserPublicKey)
     private userPublicKeyRepository: Repository<UserPublicKey>,
-    private readonly serverContextService: ServerContextService,
+    private serverContextService: ServerContextService,
   ) {}
   async getUserPublicKey(userId: number): Promise<UserPublicKey | null> {
     return this.userPublicKeyRepository.findOne({
@@ -41,8 +41,6 @@ export class CryptoService {
 
       const decryptedKey = await CryptoUtil.decryptRSA(key, serverKey);
       const decryptedIv = await CryptoUtil.decryptRSA(iv, serverKey);
-      console.log('Decrypted key:', decryptedKey);
-      console.log('Decrypted IV:', decryptedIv);
       const decipher = crypto.createDecipheriv(
         this.ALGORITHM,
         Buffer.from(decryptedKey, 'base64'),

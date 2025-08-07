@@ -7,7 +7,7 @@ export interface Config {
 
 export interface DatabaseConfig {
   type: string;
-  database: string;
+  name: string;
   synchronize: boolean;
   logging: boolean;
 }
@@ -43,7 +43,7 @@ function config(): Config {
   return {
     database: {
       type: process.env.DATABASE_TYPE || 'sqlite',
-      database: process.env.DATABASE_PATH || 'encrypted-relay.db',
+      name: process.env.DATABASE_PATH || 'encrypted-relay.db',
       synchronize: process.env.DATABASE_SYNCHRONIZE === 'true' || true,
       logging: process.env.DATABASE_LOGGING === 'true' || false,
     },

@@ -45,20 +45,17 @@ export class KeysService {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
-    // Check if user already has a public key
     const existingKey = await this.userPublicKeyRepository.findOne({
       where: { userId },
     });
 
     if (existingKey) {
-      // Update the existing key
       existingKey.publicKeyPem = publicKeyPem;
       existingKey.expiresAt = expiresAt;
       existingKey.isActive = true;
       existingKey.createdAt = new Date();
       return this.userPublicKeyRepository.save(existingKey);
     } else {
-      // Create new key
       const userPublicKey = this.userPublicKeyRepository.create({
         userId,
         publicKeyPem,
@@ -69,19 +66,6 @@ export class KeysService {
     }
   }
 
-  async getUserActivePublicKey(userId: number): Promise<UserPublicKey | null> {
-    const userKey = await this.userPublicKeyRepository.findOne({
-      where: { userId },
-    });
-
-    // Check if key exists, is active, and not expired
-    if (userKey && userKey.isActive && userKey.expiresAt > new Date()) {
-      return userKey;
-    }
-
-    return null;
-  }
-
   async getUserPublicKey(userId: number): Promise<UserPublicKey | null> {
     return this.userPublicKeyRepository.findOne({
       where: { userId },
@@ -89,11 +73,9 @@ export class KeysService {
   }
 
   async deactivateExpiredUserKeys(): Promise<void> {
-    const now = new Date();
-
     await this.userPublicKeyRepository.update(
       {
-        expiresAt: LessThan(now),
+        expiresAt: LessThan(new Date()),
       },
       { isActive: false },
     );

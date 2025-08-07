@@ -27,13 +27,13 @@ export class SchedulerService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleServerKeyRotation() {
-    this.logger.log('Checking server key rotation...');
+    this.logger.log('Starting server key rotation...');
 
     try {
      await this.serverContextService.getCurrentServerKey();
 
 
-      this.logger.log('Server key rotation check completed');
+      this.logger.log('Server key rotation completed');
     } catch (error) {
       this.logger.error('Error during server key rotation', error);
     }

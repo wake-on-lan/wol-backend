@@ -10,7 +10,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { CommandsService } from './commands.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt.strategy';
 import { DecryptionInterceptor } from '../interceptors/decrypt.interceptor';
 import { EncryptionInterceptor } from '../interceptors/encrypt.interceptor';
 import { ValidateRequest } from '../decorators/validate-request.decorator';

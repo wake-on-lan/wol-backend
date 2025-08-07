@@ -10,10 +10,9 @@ import {
 } from '@nestjs/common';
 import * as keysService from './keys.service';
 import { ServerContextService } from '../servercontext/server-context.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt.strategy';
 import { RegisterKeyDto } from './dto/register-key.dto';
 import { EncryptionInterceptor } from 'src/interceptors/encrypt.interceptor';
-import { DecryptionInterceptor } from 'src/interceptors/decrypt.interceptor';
 
 @Controller('keys')
 export class KeysController {

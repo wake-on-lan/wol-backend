@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../database/entities/user.entity';
+import { create } from 'domain';
 
 @Injectable()
 export class AuthService {
@@ -22,7 +23,6 @@ export class AuthService {
     });
 
     if (user && (await bcrypt.compare(password, user.passwordHash))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { passwordHash, ...result } = user;
       return result;
     }
@@ -36,13 +36,9 @@ export class AuthService {
     }
 
     const payload = { username: user.username, sub: user.id };
+
     return {
       access_token: this.jwtService.sign(payload),
-      user: {
-        id: user.id,
-        username: user.username,
-        createdAt: user.createdAt,
-      },
     };
   }
 

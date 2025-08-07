@@ -228,7 +228,7 @@ class EncryptedAPIClient {
   async testCompleteWorkflow(username, password) {
     try {
       this.generateClientKeyPair();
-      await this.login(username, password);
+      console.log("JWT", await this.login(username, password));
       await this.getServerPublicKey();
       await this.registerPublicKey();
 

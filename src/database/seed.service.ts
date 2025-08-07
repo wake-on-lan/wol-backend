@@ -34,19 +34,21 @@ export class SeedService implements OnModuleInit {
   }
 
   private async seedUsers() {
-    const databasePath = this.configService.get('database.database');
+      let existingUsers = 0;
+    if (this.configService.get<string>('database.type') === 'sqlite') {
+      const databasePath = this.configService.get('database.name');
 
-    // Check if database file exists, if not, the count query will fail
-    let existingUsers = 0;
-    if (fs.existsSync(databasePath)) {
-      try {
-        existingUsers = await this.userRepository.count();
-      } catch (error) {
-        this.logger.warn(
-          'Failed to count existing users, assuming database needs initialization',
-          error,
-        );
-        existingUsers = 0;
+      // Check if database file exists, if not, the count query will fail
+      if (fs.existsSync(databasePath)) {
+        try {
+          existingUsers = await this.userRepository.count();
+        } catch (error) {
+          this.logger.warn(
+            'Failed to count existing users, assuming database needs initialization',
+            error,
+          );
+          existingUsers = 0;
+        }
       }
     }
 

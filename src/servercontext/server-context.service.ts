@@ -8,7 +8,6 @@ import { CryptoUtil } from '../crypto/crypto.util';
 export class ServerContextService {
   private readonly logger = new Logger(ServerContextService.name);
   private cachedServerKey: ServerKey | null = null;
-  private refreshTimer: NodeJS.Timeout;
 
   constructor(
     @InjectRepository(ServerKey)
@@ -17,11 +16,10 @@ export class ServerContextService {
 
   async onModuleInit() {
     await this.refreshServerKey();
-    this.startPeriodicRefresh();
   }
 
   async getCurrentServerKey(): Promise<ServerKey> {
-    if (!this.cachedServerKey || this.isKeyExpired(this.cachedServerKey)) {
+    if (!this.cachedServerKey || new Date() >= this.cachedServerKey.expiresAt) {
       await this.refreshServerKey();
     }
 
@@ -71,26 +69,5 @@ export class ServerContextService {
     });
 
     return this.serverKeyRepository.save(newKey);
-  }
-
-  private isKeyExpired(key: ServerKey): boolean {
-    return new Date() >= key.expiresAt;
-  }
-
-  private startPeriodicRefresh(): void {
-    // Refresh every hour
-    this.refreshTimer = setInterval(async () => {
-      try {
-        await this.refreshServerKey();
-      } catch (error) {
-        this.logger.error('Periodic server key refresh failed', error);
-      }
-    }, 60 * 60 * 1000);
-  }
-
-  onModuleDestroy() {
-    if (this.refreshTimer) {
-      clearInterval(this.refreshTimer);
-    }
   }
 }
