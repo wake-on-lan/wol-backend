@@ -1,14 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { AppConfigService } from './config/config.service';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
 
-  const configService = app.get(AppConfigService);
+  const configService = app.get(ConfigService);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -19,15 +19,15 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: configService.server.allowedOrigins,
+    origin: configService.get('server.allowedOrigins'),
     credentials: true,
   });
 
-  const port = configService.server.port;
+  const port = configService.get('server.port');
   await app.listen(port);
 
   Logger.log(`🚀 Encrypted Relay Server running on port ${port}`);
-  Logger.log(`📊 Environment: ${configService.server.nodeEnv}`);
+  Logger.log(`📊 Environment: ${configService.get('server.nodeEnv')}`);
   Logger.log(`🗄️  Database seeding runs automatically on startup`);
 }
 void bootstrap();

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
-import { AppConfigService } from '../config/config.service';
 
 @Injectable()
 export class EncryptionService {
@@ -9,13 +9,13 @@ export class EncryptionService {
   private readonly keyDerivationIterations = 100000;
   private masterKey: Buffer;
 
-  constructor(private configService: AppConfigService) {
+  constructor(private configService: ConfigService) {
     this.initializeMasterKey();
   }
 
   private initializeMasterKey() {
-    const masterKeyString = this.configService.encryption.databaseMasterKey;
-    this.masterKey = Buffer.from(masterKeyString, 'hex');    
+    const masterKeyString = this.configService.get('encryption.databaseMasterKey');
+    this.masterKey = Buffer.from(masterKeyString, 'hex');
     this.logger.log('Database encryption initialized');
   }
 

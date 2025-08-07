@@ -1,8 +1,8 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { User } from '../entities/user.entity';
-import { UserPublicKey } from '../entities/user-public-key.entity';
-import { ServerKey } from '../entities/server-key.entity';
+import { User } from './entities/user.entity';
+import { UserPublicKey } from './entities/user-public-key.entity';
+import { ServerKey } from './entities/server-key.entity';
 
 export const createDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => ({
   type: configService.get<string>('DATABASE_TYPE', 'sqlite') as any,

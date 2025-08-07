@@ -7,18 +7,22 @@ import {
   Request,
   ValidationPipe,
 } from '@nestjs/common';
-import { KeysService } from './keys.service';
+import * as keysService from './keys.service';
+import { ServerContextService } from '../servercontext/server-context.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RegisterKeyDto } from './dto/register-key.dto';
-import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('keys')
 export class KeysController {
-  constructor(private keysService: KeysService) {}
+  constructor(
+    private keysService: keysService.KeysService,
+    private serverContextService: ServerContextService,
+  ) {}
 
   @Get('server-public')
+  @UseGuards(JwtAuthGuard)
   async getServerPublicKey() {
-    const serverKey = await this.keysService.getCurrentServerKey();
+    const serverKey = await this.serverContextService.getCurrentServerKey();
     return {
       publicKey: serverKey.publicKeyPem,
       expiresAt: serverKey.expiresAt,
@@ -28,7 +32,7 @@ export class KeysController {
   @UseGuards(JwtAuthGuard)
   @Post('register')
   async registerPublicKey(
-    @Request() req: AuthenticatedRequest,
+    @Request() req: keysService.AuthenticatedRequest,
     @Body(ValidationPipe) registerKeyDto: RegisterKeyDto,
   ) {
     const userPublicKey = await this.keysService.registerUserPublicKey(
@@ -46,7 +50,7 @@ export class KeysController {
 
   @UseGuards(JwtAuthGuard)
   @Get('my-key')
-  async getMyKey(@Request() req: AuthenticatedRequest) {
+  async getMyKey(@Request() req: keysService.AuthenticatedRequest) {
     const key = await this.keysService.getUserPublicKey(req.user.userId);
 
     if (!key) {
@@ -59,33 +63,6 @@ export class KeysController {
       isActive: key.isActive,
       createdAt: key.createdAt,
       isExpired: new Date() > key.expiresAt,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('status')
-  async getKeyStatus(@Request() req: AuthenticatedRequest) {
-    const userKey = await this.keysService.getUserActivePublicKey(
-      req.user.userId,
-    );
-    const serverKey = await this.keysService.getCurrentServerKey();
-
-    const now = new Date();
-    const warningTime = new Date();
-    warningTime.setHours(warningTime.getHours() + 2);
-
-    return {
-      userKey: userKey
-        ? {
-            expiresAt: userKey.expiresAt,
-            isExpiringSoon: userKey.expiresAt < warningTime,
-            isExpired: userKey.expiresAt < now,
-          }
-        : null,
-      serverKey: {
-        expiresAt: serverKey.expiresAt,
-        isExpiringSoon: serverKey.expiresAt < warningTime,
-      },
     };
   }
 }

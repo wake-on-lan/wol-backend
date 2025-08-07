@@ -7,37 +7,39 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { KeysModule } from './keys/keys.module';
 import { CommandsModule } from './commands/commands.module';
-import { CryptoModule } from './crypto/crypto.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { DatabaseModule } from './database/database.module';
-import { EncryptionModule } from './encryption/encryption.module';
-import { AppConfigModule } from './config/config.module';
-import {createDatabaseConfig} from './config/database.config';
+import { createDatabaseConfig } from './database/database.config';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
-import { ServerKeySubscriber } from './entities/server-key.subscriber';
+import { ServerKeySubscriber } from './database/entities/server-key.subscriber';
+import { ServerContextModule } from './servercontext/server-context.module';
+import config from './config';
+import { EncryptionModule } from './database/encryption/encryption.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      load: [config],
     }),
-    AppConfigModule,
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({...createDatabaseConfig(configService)}),
+      useFactory: (configService: ConfigService) => ({
+        ...createDatabaseConfig(configService),
+      }),
     }),
-    EncryptionModule,
     AuthModule,
     KeysModule,
+    EncryptionModule,
+    ServerContextModule,
     CommandsModule,
-    CryptoModule,
     SchedulerModule,
     DatabaseModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    ConfigService,
     ServerKeySubscriber,
     {
       provide: APP_PIPE,
@@ -48,5 +50,6 @@ import { ServerKeySubscriber } from './entities/server-key.subscriber';
       useClass: AllExceptionsFilter,
     },
   ],
+  exports: [],
 })
 export class AppModule {}

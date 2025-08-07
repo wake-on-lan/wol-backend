@@ -35,6 +35,118 @@ A NestJS-based backend service that acts as an authenticated relay/proxy for enc
 
 ### Command Processing
 - `POST /commands/send` - Send encrypted command and receive encrypted response
+- `GET /commands/scan-devices` - Scan for devices on the local network (requires authentication + registered public key)
+- `POST /commands/shell` - Execute shell commands (requires authentication + registered public key)
+- `POST /commands/wake-on-lan` - Send Wake-on-LAN magic packet (requires authentication + registered public key)
+
+**Important**: All command endpoints require a registered public key for the server to encrypt responses back to the client.
+
+## API Usage Examples
+
+### 1. Login Request
+
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "admin123"
+  }'
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "username": "admin"
+  }
+}
+```
+
+### 2. Register Public Key (Required Before Commands)
+
+**IMPORTANT**: You must register your public key before making any command requests. The server needs your public key to encrypt responses back to you.
+
+```bash
+curl -X POST http://localhost:3000/keys/register \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Public key registered successfully",
+  "keyId": 123,
+  "expiresAt": "2024-01-16T10:30:00.000Z"
+}
+```
+
+### 3. Scan Devices Request
+
+After registering your public key, use the access token from login:
+
+```bash
+curl -X GET http://localhost:3000/commands/scan-devices \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "devices": [
+    {
+      "ip": "192.168.1.1",
+      "hostname": "gateway",
+      "mac": "aa:bb:cc:dd:ee:ff",
+      "vendor": "Router Vendor"
+    },
+    {
+      "ip": "192.168.1.100",
+      "hostname": "desktop-pc",
+      "mac": "11:22:33:44:55:66",
+      "vendor": "PC Manufacturer"
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00.000Z"
+}
+```
+
+### 4. Wake-on-LAN Request
+
+**Note**: Requires registered public key for encrypted response.
+
+```bash
+curl -X POST http://localhost:3000/commands/wake-on-lan \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "macAddress": "00:11:22:33:44:55",
+    "ipAddress": "192.168.1.100",
+    "port": 9
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Wake-on-LAN packet sent successfully",
+  "target": {
+    "macAddress": "00:11:22:33:44:55",
+    "ipAddress": "192.168.1.100",
+    "port": 9
+  },
+  "timestamp": "2024-01-15T10:35:00.000Z"
+}
+```
 
 ## Database Schema
 
@@ -212,10 +324,16 @@ ALLOWED_ORIGINS=https://yourdomain.com
 ### Modules
 - **AuthModule**: JWT-based authentication and user management
 - **KeysModule**: RSA key generation, storage, and lifecycle management  
-- **CommandsModule**: Encrypted command processing and relay functionality
-- **CryptoModule**: RSA encryption/decryption operations
-- **SchedulerModule**: Automated key rotation and expiration tasks
+- **CommandsModule**: Command processing including device scanning, shell execution, and Wake-on-LAN
+- **EncryptionModule**: Database field encryption/decryption using AES-256-GCM
+- **ConfigModule**: Application configuration management
 - **DatabaseModule**: SQLite database configuration and seeding
+
+### Recent Updates
+- **Database Encryption**: Added automatic encryption for sensitive fields like private keys using AES-256-GCM
+- **Entity Subscribers**: Implemented TypeORM subscribers for transparent encryption/decryption of ServerKey entities
+- **Enhanced Command Support**: Added dedicated endpoints for device scanning, shell commands, and Wake-on-LAN operations
+- **Improved Security**: Private keys are now automatically encrypted at rest and decrypted when loaded
 
 ### Security Features
 - Input validation with class-validator

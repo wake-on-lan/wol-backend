@@ -1,8 +1,6 @@
 import {
   Injectable,
 } from '@nestjs/common';
-import { KeysService } from '../keys/keys.service';
-import { CryptoService } from '../crypto/crypto.service';
 import { Client } from 'ssh2';
 import * as wol from 'wake_on_lan';
 import find from 'local-devices';
@@ -49,8 +47,6 @@ export interface WakeOnLanResponse {
 @Injectable()
 export class CommandsService {
   constructor(
-    private keysService: KeysService,
-    private cryptoService: CryptoService,
   ) {}
 
   async scanLocalDevices(): Promise<Device[]> {

@@ -3,9 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
-import { User } from '../entities/user.entity';
-import { KeysService } from '../keys/keys.service';
-import { AppConfigService } from '../config/config.service';
+import { User } from './entities/user.entity';
+import { ServerContextService } from '../servercontext/server-context.service';
+import { ConfigService } from '@nestjs/config';
+import { CryptoUtil } from 'src/crypto/crypto.util';
+import { ServerKey } from './entities/server-key.entity';
 
 @Injectable()
 export class SeedService implements OnModuleInit {
@@ -14,8 +16,9 @@ export class SeedService implements OnModuleInit {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private keysService: KeysService,
-    private configService: AppConfigService,
+    @InjectRepository(ServerKey)
+    private serverKeyRepository: Repository<ServerKey>,
+    private configService: ConfigService,
   ) {}
 
   async onModuleInit() {
@@ -31,15 +34,18 @@ export class SeedService implements OnModuleInit {
   }
 
   private async seedUsers() {
-    const databasePath = this.configService.database.database;
-    
+    const databasePath = this.configService.get('database.database');
+
     // Check if database file exists, if not, the count query will fail
     let existingUsers = 0;
     if (fs.existsSync(databasePath)) {
       try {
         existingUsers = await this.userRepository.count();
       } catch (error) {
-        this.logger.warn('Failed to count existing users, assuming database needs initialization', error);
+        this.logger.warn(
+          'Failed to count existing users, assuming database needs initialization',
+          error,
+        );
         existingUsers = 0;
       }
     }
@@ -72,10 +78,16 @@ export class SeedService implements OnModuleInit {
 
   private async initializeServerKey() {
     try {
-      const serverKey = await this.keysService.getCurrentServerKey();
-      this.logger.log(
-        `Server key initialized, expires at: ${serverKey.expiresAt.toISOString()}`,
-      );
+      const keyPair = CryptoUtil.generateKeyPair();
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+
+      const newKey = this.serverKeyRepository.create({
+        publicKeyPem: keyPair.publicKey,
+        privateKeyPem: keyPair.privateKey,
+        expiresAt,
+        isActive: true,
+      });
     } catch (error) {
       this.logger.error('Failed to initialize server key', error);
     }

@@ -7,8 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { User } from '../entities/user.entity';
-import { AppConfigService } from '../config/config.service';
+import { User } from '../database/entities/user.entity';
 
 @Module({
   imports: [
