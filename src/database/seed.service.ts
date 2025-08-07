@@ -2,8 +2,10 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import * as fs from 'fs';
 import { User } from '../entities/user.entity';
 import { KeysService } from '../keys/keys.service';
+import { AppConfigService } from '../config/config.service';
 
 @Injectable()
 export class SeedService implements OnModuleInit {
@@ -13,15 +15,34 @@ export class SeedService implements OnModuleInit {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private keysService: KeysService,
+    private configService: AppConfigService,
   ) {}
 
   async onModuleInit() {
-    await this.seedUsers();
-    await this.initializeServerKey();
+    this.logger.log('🌱 Starting database seeding...');
+    try {
+      await this.seedUsers();
+      await this.initializeServerKey();
+      this.logger.log('✅ Database seeding completed successfully');
+    } catch (error) {
+      this.logger.error('❌ Database seeding failed', error);
+      throw error;
+    }
   }
 
   private async seedUsers() {
-    const existingUsers = await this.userRepository.count();
+    const databasePath = this.configService.database.database;
+    
+    // Check if database file exists, if not, the count query will fail
+    let existingUsers = 0;
+    if (fs.existsSync(databasePath)) {
+      try {
+        existingUsers = await this.userRepository.count();
+      } catch (error) {
+        this.logger.warn('Failed to count existing users, assuming database needs initialization', error);
+        existingUsers = 0;
+      }
+    }
 
     if (existingUsers === 0) {
       this.logger.log('Seeding initial users...');

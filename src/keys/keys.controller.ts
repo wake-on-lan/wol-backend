@@ -45,17 +45,21 @@ export class KeysController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('my-keys')
-  async getMyKeys(@Request() req: AuthenticatedRequest) {
-    const keys = await this.keysService.getUserPublicKeys(req.user.userId);
+  @Get('my-key')
+  async getMyKey(@Request() req: AuthenticatedRequest) {
+    const key = await this.keysService.getUserPublicKey(req.user.userId);
 
-    return keys.map((key) => ({
+    if (!key) {
+      return null;
+    }
+
+    return {
       id: key.id,
       expiresAt: key.expiresAt,
       isActive: key.isActive,
       createdAt: key.createdAt,
       isExpired: new Date() > key.expiresAt,
-    }));
+    };
   }
 
   @UseGuards(JwtAuthGuard)

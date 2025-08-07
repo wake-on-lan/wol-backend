@@ -14,7 +14,7 @@ export class ServerKey {
   publicKeyPem: string;
 
   @Column('text')
-  privateKeyPem: string;
+  privateKeyPem: string; // Removed 'private' modifier - not needed and can cause issues
 
   @Column()
   expiresAt: Date;

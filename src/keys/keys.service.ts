@@ -38,11 +38,6 @@ export class KeysService {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
-    await this.serverKeyRepository.update(
-      { isActive: true },
-      { isActive: false },
-    );
-
     const newKey = this.serverKeyRepository.create({
       publicKeyPem: keyPair.publicKey,
       privateKeyPem: keyPair.privateKey,
@@ -61,41 +56,49 @@ export class KeysService {
       throw new BadRequestException('Invalid public key format');
     }
 
-    await this.userPublicKeyRepository.update(
-      { userId, isActive: true },
-      { isActive: false },
-    );
-
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
-    const userPublicKey = this.userPublicKeyRepository.create({
-      userId,
-      publicKeyPem,
-      expiresAt,
-      isActive: true,
+    // Check if user already has a public key
+    const existingKey = await this.userPublicKeyRepository.findOne({
+      where: { userId },
     });
 
-    return this.userPublicKeyRepository.save(userPublicKey);
+    if (existingKey) {
+      // Update the existing key
+      existingKey.publicKeyPem = publicKeyPem;
+      existingKey.expiresAt = expiresAt;
+      existingKey.isActive = true;
+      existingKey.createdAt = new Date();
+      return this.userPublicKeyRepository.save(existingKey);
+    } else {
+      // Create new key
+      const userPublicKey = this.userPublicKeyRepository.create({
+        userId,
+        publicKeyPem,
+        expiresAt,
+        isActive: true,
+      });
+      return this.userPublicKeyRepository.save(userPublicKey);
+    }
   }
 
   async getUserActivePublicKey(userId: number): Promise<UserPublicKey | null> {
-    return this.userPublicKeyRepository.findOne({
-      where: {
-        userId,
-        isActive: true,
-        expiresAt: MoreThan(new Date()),
-      },
-      order: {
-        createdAt: 'DESC',
-      },
+    const userKey = await this.userPublicKeyRepository.findOne({
+      where: { userId },
     });
+
+    // Check if key exists, is active, and not expired
+    if (userKey && userKey.isActive && userKey.expiresAt > new Date()) {
+      return userKey;
+    }
+
+    return null;
   }
 
-  async getUserPublicKeys(userId: number): Promise<UserPublicKey[]> {
-    return this.userPublicKeyRepository.find({
+  async getUserPublicKey(userId: number): Promise<UserPublicKey | null> {
+    return this.userPublicKeyRepository.findOne({
       where: { userId },
-      order: { createdAt: 'DESC' },
     });
   }
 
@@ -129,7 +132,6 @@ export class KeysService {
 
     await this.userPublicKeyRepository.update(
       {
-        isActive: true,
         expiresAt: LessThan(now),
       },
       { isActive: false },

@@ -1,38 +1,47 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   UseGuards,
-  Request,
   ValidationPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { CommandsService } from './commands.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { SendCommandDto } from './dto/send-command.dto';
-import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import { ShellCommandDto } from './dto/shell-command.dto';
+import { WakeOnLanDto } from './dto/wake-on-lan.dto';
 
 @Controller('commands')
 export class CommandsController {
   constructor(private commandsService: CommandsService) {}
 
   @UseGuards(JwtAuthGuard)
-  @Post('send')
+  @Get('scan-devices')
   @HttpCode(HttpStatus.OK)
-  async sendCommand(
-    @Request() req: AuthenticatedRequest,
-    @Body(ValidationPipe) sendCommandDto: SendCommandDto,
-  ) {
-    const encryptedResponse =
-      await this.commandsService.processEncryptedCommand(
-        req.user.userId,
-        sendCommandDto.encryptedCommand,
-      );
+  async scanDevices() {
+    const devices = await this.commandsService.scanLocalDevices();
+    return devices;
+  }
 
-    return {
-      encryptedResponse,
-      timestamp: new Date().toISOString(),
-    };
+  @UseGuards(JwtAuthGuard)
+  @Post('shell')
+  @HttpCode(HttpStatus.OK)
+  async executeShell(
+    @Body(ValidationPipe) payload: ShellCommandDto,
+  ) {
+    const result = await this.commandsService.executeShellCommand(payload);
+    return result;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('wake-on-lan')
+  @HttpCode(HttpStatus.OK)
+  async wakeOnLan(
+    @Body(ValidationPipe) payload: WakeOnLanDto,
+  ) {
+    const result = await this.commandsService.sendWakeOnLan(payload);
+    return result;
   }
 }

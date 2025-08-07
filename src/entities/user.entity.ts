@@ -3,7 +3,7 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
-  OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { UserPublicKey } from './user-public-key.entity';
 
@@ -21,6 +21,6 @@ export class User {
   @CreateDateColumn()
   createdAt: Date;
 
-  @OneToMany(() => UserPublicKey, (userPublicKey) => userPublicKey.user)
-  publicKeys: UserPublicKey[];
+  @OneToOne(() => UserPublicKey, (userPublicKey) => userPublicKey.user)
+  publicKey: UserPublicKey;
 }
