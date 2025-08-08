@@ -1,0 +1,47 @@
+image: node:23.0.0
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+      - package.json
+      - package-lock.json
+    expire_in: 1 hour
+  only:
+    - /^v\d+\.\d+\.\d+$/
+  tags:
+    - node
+
+deploy:
+  stage: deploy
+  dependencies:
+    - build
+  only:
+    - /^v\d+\.\d+\.\d+$/
+  before_script:
+    # Install SSH client if not already present
+    - "which ssh-agent || (apt-get update -y && apt-get install openssh-client -y)"
+    # Start SSH agent and add private key
+    - echo "Host ${DEPLOY_HOST}"
+    - echo "User ${DEPLOY_USER}"
+    - eval $(ssh-agent -s)
+    - chmod 600 "$SSH_PRIVATE_KEY"
+    - ssh-add "$SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+  script:
+    - scp package.json $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
+    - scp package-lock.json $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
+    - scp -r dist/ $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/${DEPLOY_USER}/wol-backend && npm ci --only=production"
+  tags:
+    - node
