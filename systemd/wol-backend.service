@@ -1,0 +1,16 @@
+[Unit]
+Description=WakeOnLAN Backend Service
+After=network.target
+
+[Service]
+ExecStart=/bin/bash -c 'cd /home/wakeonlan/wol-backend && source .env && node dist/main'
+WorkingDirectory=/home/wakeonlan/wol-backend
+User=wakeonlan
+Group=wakeonlan
+Restart=always
+StandardOutput=append:/var/log/wol-backend.log
+StandardError=append:/var/log/wol-backend.err
+EnvironmentFile=/home/wakeonlan/wol-backend/.env
+
+[Install]
+WantedBy=multi-user.target
