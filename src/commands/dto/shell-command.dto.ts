@@ -6,7 +6,6 @@ export class ShellCommandDto {
   host: string;
 
   @IsNumber()
-  @IsPort()
   port: number;
 
   @IsString()

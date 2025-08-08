@@ -11,6 +11,8 @@ A secure NestJS-based backend service that provides authenticated Wake-on-LAN fu
 - **Hybrid Encryption**: RSA + AES encryption for secure communications
 - **JWT Authentication**: Token-based user authentication
 - **Database Encryption**: All sensitive data encrypted at rest with AES-256-GCM
+- **Encrypted User Management**: Generate and deploy encrypted user configurations
+- **CI/CD Support**: GitLab CI integration for automated deployments
 
 ### Security Model
 - **Client-Generated Keys**: Users generate RSA key pairs locally (private keys never transmitted)
@@ -222,6 +224,68 @@ curl -X GET http://localhost:3000/commands/scan-devices \
 - User keys expire after 24 hours
 - Grace period warnings sent before expiration
 - Expired keys are automatically deactivated
+
+## Utility Scripts
+
+The `/scripts` directory contains utility scripts for testing and user management:
+
+### encrypt-users.js
+Encrypts user data for secure deployment. Creates encrypted user files that can be used to seed the database with pre-configured accounts.
+
+```bash
+# Basic usage with environment variable
+DATABASE_MASTER_KEY=your_64_char_hex_key node scripts/encrypt-users.js
+
+# With custom input/output files
+node scripts/encrypt-users.js --input users.json --output users.encrypted.json --key abc123...
+
+# Show help
+node scripts/encrypt-users.js --help
+```
+
+Input JSON format:
+```json
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "securePassword123"
+    }
+  ]
+}
+```
+
+### shell-command.js
+Execute remote shell commands through the encrypted API. Supports both password and key-based SSH authentication.
+
+```bash
+# Basic command execution
+node scripts/shell-command.js --command "ls -la ~"
+
+# With custom authentication
+node scripts/shell-command.js --command "df -h" --password mypassword --host 192.168.1.100
+
+# Using SSH key
+node scripts/shell-command.js --command "ps aux" --key /path/to/private/key --user myuser
+
+# Show help
+node scripts/shell-command.js --help
+```
+
+### test-workflow.js
+Complete end-to-end workflow test that demonstrates the full encryption lifecycle including authentication, key exchange, device scanning, and Wake-on-LAN operations.
+
+```bash
+# Run complete workflow test
+node scripts/test-workflow.js
+```
+
+This script automatically:
+- Authenticates with the API
+- Generates client RSA key pair
+- Registers public key with server
+- Scans for network devices
+- Tests Wake-on-LAN functionality
 
 ## Development
 

@@ -74,7 +74,6 @@ export class ServerKeyService implements OnModuleInit {
       expiresAt,
       isActive: true,
     });
-    console.log(newKey)
     return this.repository.save(newKey);
   }
 
@@ -103,14 +102,14 @@ export class ServerKeyService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleServerKeyRotation() {
-    this.logger.log('Checking server key rotation...');
+    this.logger.log('Checking ServerKey rotation...');
 
     try {
       await this.rotateKeyIfNeeded();
 
-      this.logger.log('Server key check completed');
+      this.logger.log('ServerKey rotation check completed');
     } catch (error) {
-      this.logger.error('Error during server key check', error);
+      this.logger.error('Error during ServerKey rotation check', error);
     }
   }
 }

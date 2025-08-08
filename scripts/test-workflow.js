@@ -228,13 +228,14 @@ class EncryptedAPIClient {
   async testCompleteWorkflow() {
     try {
       this.generateClientKeyPair();
+      await this.login(config.username, config.password);
       await this.getServerPublicKey();
       await this.registerPublicKey();
 
       const devices = await this.scanDevices();
       console.log('Devices found:', devices);
 
-      const wolResult = await this.testWakeOnLAN('84:d8:1b:36:a2:67');
+      const wolResult = await this.testWakeOnLAN('84:d8:1b:36:a2:67'); //neupengasse
       console.log('Wake-on-LAN result:', wolResult);
       console.log('✅ Complete workflow test successful');
     } catch (err) {

@@ -82,14 +82,14 @@ export class UserKeyService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleUserKeyExpiration() {
-    this.logger.log('Running key expiration check...');
+    this.logger.log('Running UserKey expiration check...');
 
     try {
       await this.deactivateExpiredUserKeys();
 
-      this.logger.log('Key expiration check completed');
+      this.logger.log('UserKey expiration check completed');
     } catch (error) {
-      this.logger.error('Error during key expiration check', error);
+      this.logger.error('Error during UserKey expiration check', error);
     }
   }
 }

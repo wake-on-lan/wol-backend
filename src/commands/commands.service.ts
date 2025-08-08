@@ -139,7 +139,6 @@ export class CommandsService {
           });
         });
       });
-
       sshClient.connect(config);
     });
   }
