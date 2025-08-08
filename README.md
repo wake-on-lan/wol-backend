@@ -1,171 +1,67 @@
 # Wake-on-LAN Encrypted Relay Server
 
-A NestJS-based backend service that acts as an authenticated relay/proxy for encrypted commands and wake-on-LAN packets. The system implements bidirectional encryption where clients generate their own RSA key pairs and communicate with the server using encrypted messages.
+A secure NestJS-based backend service that provides authenticated Wake-on-LAN functionality with end-to-end encryption. The server acts as a secure relay for network commands, featuring hybrid RSA/AES encryption and automatic key rotation.
 
 ## Features
 
 ### Core Functionality
-- **Encrypted Command Relay**: Receives encrypted commands from clients and forwards them to target servers
-- **Bidirectional Encryption**: Client-to-server and server-to-client message encryption using RSA
-- **Wake-on-LAN Support**: Specialized handling for wake-on-LAN magic packets
-- **JWT Authentication**: Secure user authentication with session management
+- **Wake-on-LAN**: Send magic packets to wake up remote devices
+- **Network Scanning**: Discover devices on the local network
+- **Shell Command Execution**: Execute system commands remotely (authenticated users only)
+- **Hybrid Encryption**: RSA + AES encryption for secure communications
+- **JWT Authentication**: Token-based user authentication
+- **Database Encryption**: All sensitive data encrypted at rest with AES-256-GCM
 
 ### Security Model
-- **Client-Side Key Generation**: Users generate RSA/ECDSA key pairs locally (private keys never leave client)
-- **Public Key Registration**: Users register only their public keys with the server after authentication
-- **Server Key Rotation**: Automatic 24-hour server key pair rotation
-- **Key Expiration Management**: Automated key lifecycle with expiration warnings
+- **Client-Generated Keys**: Users generate RSA key pairs locally (private keys never transmitted)
+- **Public Key Registration**: Only public keys are registered with the server
+- **Automatic Key Rotation**: Server keys rotate every 24 hours
+- **Key Expiration**: All keys expire after 24 hours for enhanced security
+- **Database Encryption**: Sensitive database fields encrypted with master key
 
-### Key Management
-- **24-Hour Key Lifecycle**: All keys expire after 24 hours for enhanced security
-- **Automated Rotation**: Scheduled tasks handle key expiration and server key rotation
-- **Grace Period Warnings**: Users receive warnings before key expiration
-- **Key Status Monitoring**: Real-time key status and expiration checking
+## Technology Stack
+
+- **Framework**: NestJS (Node.js)
+- **Database**: SQLite with TypeORM
+- **Authentication**: JWT with Passport
+- **Encryption**: 
+  - RSA-2048 for message encryption
+  - AES-256-GCM for database encryption
+  - bcrypt for password hashing
+- **Networking**: SSH2, wake_on_lan, local-devices
+- **Validation**: class-validator, class-transformer
 
 ## API Endpoints
 
 ### Authentication
-- `POST /auth/login` - User authentication with existing SQLite credentials
+- `POST /auth/login` - Authenticate user and receive JWT token
 
-### Key Management  
-- `GET /keys/server-public` - Retrieve server's current public key
-- `POST /keys/register` - Register new public key for authenticated user
-- `GET /keys/my-keys` - List user's registered public keys and status
-- `GET /keys/status` - Check key expiration warnings and status
+### Key Management
+- `GET /keys/server-public` - Get server's current public key
+- `POST /keys/register` - Register client's public key (requires authentication)
+- `GET /keys/my-keys` - List registered keys for authenticated user
+- `GET /keys/status` - Check key expiration status
 
-### Command Processing
+### Commands
 - `POST /commands/send` - Send encrypted command and receive encrypted response
-- `GET /commands/scan-devices` - Scan for devices on the local network (requires authentication + registered public key)
-- `POST /commands/shell` - Execute shell commands (requires authentication + registered public key)
-- `POST /commands/wake-on-lan` - Send Wake-on-LAN magic packet (requires authentication + registered public key)
+- `GET /commands/scan-devices` - Scan network for devices
+- `POST /commands/shell` - Execute shell commands
+- `POST /commands/wake-on-lan` - Send Wake-on-LAN magic packet
 
-**Important**: All command endpoints require a registered public key for the server to encrypt responses back to the client.
+**Note**: All command endpoints require authentication and a registered public key for encrypted responses.
 
-## API Usage Examples
-
-### 1. Login Request
-
-```bash
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin",
-    "password": "admin123"
-  }'
-```
-
-**Response:**
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "user": {
-    "id": 1,
-    "username": "admin"
-  }
-}
-```
-
-### 2. Register Public Key (Required Before Commands)
-
-**IMPORTANT**: You must register your public key before making any command requests. The server needs your public key to encrypt responses back to you.
-
-```bash
-curl -X POST http://localhost:3000/keys/register \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -H "Content-Type: application/json" \
-  -d '{
-    "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----"
-  }'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Public key registered successfully",
-  "keyId": 123,
-  "expiresAt": "2024-01-16T10:30:00.000Z"
-}
-```
-
-### 3. Scan Devices Request
-
-After registering your public key, use the access token from login:
-
-```bash
-curl -X GET http://localhost:3000/commands/scan-devices \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "devices": [
-    {
-      "ip": "192.168.1.1",
-      "hostname": "gateway",
-      "mac": "aa:bb:cc:dd:ee:ff",
-      "vendor": "Router Vendor"
-    },
-    {
-      "ip": "192.168.1.100",
-      "hostname": "desktop-pc",
-      "mac": "11:22:33:44:55:66",
-      "vendor": "PC Manufacturer"
-    }
-  ],
-  "timestamp": "2024-01-15T10:30:00.000Z"
-}
-```
-
-### 4. Wake-on-LAN Request
-
-**Note**: Requires registered public key for encrypted response.
-
-```bash
-curl -X POST http://localhost:3000/commands/wake-on-lan \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -H "Content-Type: application/json" \
-  -d '{
-    "macAddress": "00:11:22:33:44:55",
-    "ipAddress": "192.168.1.100",
-    "port": 9
-  }'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Wake-on-LAN packet sent successfully",
-  "target": {
-    "macAddress": "00:11:22:33:44:55",
-    "ipAddress": "192.168.1.100",
-    "port": 9
-  },
-  "timestamp": "2024-01-15T10:35:00.000Z"
-}
-```
-
-## Database Schema
-
-### SQLite Tables
-- **users**: `id`, `username`, `password_hash`, `created_at`
-- **user_public_keys**: `id`, `user_id`, `public_key_pem`, `expires_at`, `is_active`, `created_at`  
-- **server_keys**: `id`, `public_key_pem`, `private_key_pem`, `expires_at`, `is_active`, `created_at`
-
-## Project Setup
+## Quick Start
 
 ### Prerequisites
-- Node.js (v16 or higher)
+- Node.js 16+ 
 - npm or yarn
 
 ### Installation
 
 ```bash
-# Clone and navigate to project
-cd encrypted-relay-server
+# Clone the repository
+git clone <repository-url>
+cd wake-on-lan
 
 # Install dependencies
 npm install
@@ -176,145 +72,217 @@ cp .env.example .env
 
 ### Environment Configuration
 
-Update `.env` file with your settings:
+Edit `.env` with your settings:
 
 ```env
 # Server Configuration
 PORT=3000
 NODE_ENV=development
 
-# JWT Configuration (Change in production!)
-JWT_SECRET=secure-jwt-secret-key-change-in-production
-
 # CORS Configuration
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 
-# Database Configuration
+# Database Configuration  
+DATABASE_TYPE=sqlite
 DATABASE_PATH=encrypted-relay.db
+DATABASE_SYNCHRONIZE=true
+DATABASE_LOGGING=false
+
+# Database Encryption - REQUIRED
+# Generate with: openssl rand -hex 32
+DATABASE_MASTER_KEY=your_64_character_hex_key_here_replace_this_value
+
+# JWT Configuration
+JWT_SECRET=secure-jwt-secret-key-change-in-production
+JWT_EXPIRES_IN=24h
+
+# Server Key Configuration
+EXPIRE_PRIVATE_KEY_IN=24h
+ROTATION_CUTOFF_MS=1h
 ```
 
-### Running the Application
+### Generate Database Master Key
+
+```bash
+# Generate a secure 64-character hex key for database encryption
+openssl rand -hex 32
+```
+
+### Start the Application
 
 ```bash
 # Development mode with hot reload
 npm run start:dev
 
-# Production mode
+# Production mode  
 npm run start:prod
 
-# Standard development mode
+# Standard mode
 npm run start
 ```
 
-## Default Users
+The server will start on port 3000 (or your configured PORT).
 
-The application seeds the following test users on first run:
+## Default Test Users
 
-| Username | Password | Role |
-|----------|----------|------|
-| admin    | admin123 | Administrator |
-| user     | user123  | Standard User |
-| testuser | test123  | Test User |
+The application creates test users on first startup:
 
-## Encryption Workflow
+| Username | Password | Description |
+|----------|----------|-------------|
+| admin    | admin123 | Administrator account |
+| user     | user123  | Standard user account |
+| testuser | test123  | Test user account |
 
-### 1. Initial Setup
-1. Client generates RSA key pair locally (private key stays on client)
-2. Client authenticates with username/password 
-3. Client registers public key with server via `POST /keys/register`
-4. Client retrieves server's public key via `GET /keys/server-public`
+**Important**: Change these passwords in production!
 
-### 2. Command Processing
-1. Client encrypts command using server's public key
-2. Client sends encrypted command via `POST /commands/send`
-3. Server decrypts command using its private key
-4. Server processes command and generates response
-5. Server encrypts response using client's registered public key
-6. Server returns encrypted response to client
-7. Client decrypts response using its private key
+## Database Schema
 
-### 3. Key Rotation
-- Server keys rotate every 24 hours automatically
-- User keys expire after 24 hours (users must generate new ones)
-- Grace period warnings sent 2 hours before expiration
-- Expired keys are automatically deactivated
+The application uses SQLite with the following main entities:
 
-## Supported Commands
+- **users**: User accounts with encrypted passwords
+- **user_public_keys**: Client public keys with expiration tracking
+- **server_keys**: Server key pairs (private keys encrypted at rest)
 
-The server supports the following command types:
+All sensitive fields are automatically encrypted using AES-256-GCM.
 
-### Wake-on-LAN
+## Usage Examples
+
+### 1. Authentication
+
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "admin123"
+  }'
+```
+
+Response:
 ```json
 {
-  "type": "wake-on-lan",
-  "payload": {
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "id": 1,
+    "username": "admin"
+  }
+}
+```
+
+### 2. Register Public Key
+
+Before sending commands, register your public key:
+
+```bash
+curl -X POST http://localhost:3000/keys/register \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----"
+  }'
+```
+
+### 3. Wake-on-LAN
+
+```bash
+curl -X POST http://localhost:3000/commands/wake-on-lan \
+  -H "Authorization: Bearer <your-jwt-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
     "macAddress": "00:11:22:33:44:55",
     "ipAddress": "192.168.1.100",
     "port": 9
-  }
-}
+  }'
 ```
 
-### Ping
-```json
-{
-  "type": "ping", 
-  "payload": {
-    "target": "192.168.1.100"
-  }
-}
+### 4. Network Scan
+
+```bash
+curl -X GET http://localhost:3000/commands/scan-devices \
+  -H "Authorization: Bearer <your-jwt-token>"
 ```
 
-### System Status
-```json
-{
-  "type": "system-status",
-  "payload": {}
-}
-```
+## Encryption Workflow
+
+### Initial Setup
+1. Client generates RSA key pair locally
+2. Client authenticates with username/password
+3. Client registers public key with server
+4. Client retrieves server's current public key
+
+### Command Processing
+1. Client encrypts command with server's public key
+2. Server decrypts command with its private key
+3. Server processes command
+4. Server encrypts response with client's public key
+5. Client decrypts response with its private key
+
+### Key Management
+- Server keys rotate automatically every 24 hours
+- User keys expire after 24 hours
+- Grace period warnings sent before expiration
+- Expired keys are automatically deactivated
 
 ## Development
 
-### Code Linting
+### Code Quality
+
 ```bash
+# Run linting
 npm run lint
+
+# Format code
+npm run format
 ```
 
 ### Testing
+
 ```bash
-# Unit tests
+# Run unit tests
 npm run test
 
-# E2E tests  
+# Run tests with coverage
+npm run test:cov
+
+# Run e2e tests
 npm run test:e2e
 
-# Test coverage
-npm run test:cov
+# Watch mode
+npm run test:watch
 ```
 
-### Database Management
+### Build
 
-The application uses SQLite with TypeORM:
-- Database file: `encrypted-relay.db` (created automatically)
-- Automatic schema synchronization in development
-- Initial user seeding on first run
+```bash
+# Build for production
+npm run build
+```
 
 ## Production Deployment
 
 ### Security Checklist
+
+- [ ] Generate secure `DATABASE_MASTER_KEY` (64 hex characters)
 - [ ] Change `JWT_SECRET` to a strong random value
-- [ ] Update default user passwords or disable test accounts  
-- [ ] Configure appropriate `ALLOWED_ORIGINS` for CORS
+- [ ] Update default user passwords or remove test accounts
 - [ ] Set `NODE_ENV=production`
-- [ ] Enable HTTPS/TLS termination
-- [ ] Configure proper logging and monitoring
-- [ ] Set up database backups
-- [ ] Review and harden server configuration
+- [ ] Configure appropriate `ALLOWED_ORIGINS` for CORS
+- [ ] Set `DATABASE_SYNCHRONIZE=false` in production
+- [ ] Enable HTTPS/TLS
+- [ ] Set up monitoring and logging
+- [ ] Configure database backups
+- [ ] Review server security configuration
 
 ### Environment Variables
+
+For production, ensure these are properly configured:
+
 ```env
 NODE_ENV=production
-JWT_SECRET=your-super-secure-random-jwt-secret
+DATABASE_MASTER_KEY=<64-character-hex-key>
+JWT_SECRET=<strong-random-secret>
+DATABASE_SYNCHRONIZE=false
+DATABASE_LOGGING=false
 PORT=3000
 ALLOWED_ORIGINS=https://yourdomain.com
 ```
@@ -322,27 +290,22 @@ ALLOWED_ORIGINS=https://yourdomain.com
 ## Architecture
 
 ### Modules
-- **AuthModule**: JWT-based authentication and user management
-- **KeysModule**: RSA key generation, storage, and lifecycle management  
-- **CommandsModule**: Command processing including device scanning, shell execution, and Wake-on-LAN
-- **EncryptionModule**: Database field encryption/decryption using AES-256-GCM
-- **ConfigModule**: Application configuration management
-- **DatabaseModule**: SQLite database configuration and seeding
-
-### Recent Updates
-- **Database Encryption**: Added automatic encryption for sensitive fields like private keys using AES-256-GCM
-- **Entity Subscribers**: Implemented TypeORM subscribers for transparent encryption/decryption of ServerKey entities
-- **Enhanced Command Support**: Added dedicated endpoints for device scanning, shell commands, and Wake-on-LAN operations
-- **Improved Security**: Private keys are now automatically encrypted at rest and decrypted when loaded
+- **AppModule**: Main application module
+- **AuthModule**: JWT authentication and user management
+- **KeysModule**: RSA key generation, storage, and lifecycle
+- **CommandsModule**: Command processing and execution
+- **DatabaseModule**: SQLite configuration and data seeding
 
 ### Security Features
 - Input validation with class-validator
-- Global exception filtering and error handling
-- CORS configuration
-- JWT token-based authentication
-- RSA-2048 encryption for all sensitive communications
-- Automated key rotation and expiration
+- Global exception handling
+- CORS protection
+- JWT token authentication
+- RSA-2048 message encryption
+- AES-256-GCM database encryption
+- Automated key rotation
+- Password hashing with bcrypt
 
 ## License
 
-This project is MIT licensed.
+UNLICENSED - Private project

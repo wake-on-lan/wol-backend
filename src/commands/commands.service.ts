@@ -71,7 +71,7 @@ export class CommandsService {
         command: sshConfig.command,
         exitStatus: -1,
         message: 'Invalid SSH configuration',
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toLocaleString(),
       };
     }
 
@@ -92,7 +92,7 @@ export class CommandsService {
           exitStatus: -1,
           message: `SSH connection error: ${err.message}`,
           command,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().toLocaleString(),
         });
       });
 
@@ -105,7 +105,7 @@ export class CommandsService {
               exitStatus: -1,
               message: `Failed to execute command: "${command}". Error: ${err.message}`,
               command,
-              timestamp: new Date().toISOString(),
+              timestamp: new Date().toLocaleString(),
             });
           }
 
@@ -125,7 +125,7 @@ export class CommandsService {
                 exitStatus: code,
                 message: stdout,
                 command,
-                timestamp: new Date().toISOString(),
+                timestamp: new Date().toLocaleString(),
               });
             } else {
               resolve({
@@ -133,7 +133,7 @@ export class CommandsService {
                 exitStatus: code,
                 message: stderr,
                 command,
-                timestamp: new Date().toISOString(),
+                timestamp: new Date().toLocaleString(),
               });
             }
           });
@@ -187,14 +187,14 @@ export class CommandsService {
             resolve({
               success: false,
               error: error.message,
-              timestamp: new Date().toISOString(),
+              timestamp: new Date().toLocaleString(),
             });
           } else {
             resolve({
               success: true,
               message: `Wake-on-LAN packet sent successfully`,
               target: { macAddress },
-              timestamp: new Date().toISOString(),
+              timestamp: new Date().toLocaleString(),
             });
           }
         });
@@ -203,7 +203,7 @@ export class CommandsService {
       return {
         success: false,
         error: error.message,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toLocaleString(),
       };
     }
   }

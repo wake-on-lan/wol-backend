@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { KeysService } from './keys.service';
+import { UserKeyService } from './user-key.service';
 import { KeysController } from './keys.controller';
 import { ServerKey } from '../database/entities/server-key.entity';
 import { UserPublicKey } from '../database/entities/user-public-key.entity';
-import { CryptoModule } from 'src/crypto/crypto.module';
+import { ServerKeyService } from './server-key.service';
+import { CryptoService } from './crypto.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ServerKey, UserPublicKey]),
-  CryptoModule],
+  imports: [TypeOrmModule.forFeature([ServerKey, UserPublicKey])],
   controllers: [KeysController],
-  providers: [KeysService],
-  exports: [KeysService],
+  providers: [UserKeyService, ServerKeyService, CryptoService],
+  exports: [UserKeyService, ServerKeyService, CryptoService],
 })
 export class KeysModule {}

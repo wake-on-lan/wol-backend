@@ -225,10 +225,9 @@ class EncryptedAPIClient {
     throw new Error(`Wake-on-LAN failed: ${res.status} - ${JSON.stringify(res.data)}`);
   }
 
-  async testCompleteWorkflow(username, password) {
+  async testCompleteWorkflow() {
     try {
       this.generateClientKeyPair();
-      console.log("JWT", await this.login(username, password));
       await this.getServerPublicKey();
       await this.registerPublicKey();
 
@@ -249,7 +248,7 @@ class EncryptedAPIClient {
 
 async function main() {
   const client = new EncryptedAPIClient(config.baseUrl);
-  await client.testCompleteWorkflow(config.username, config.password);
+  await client.testCompleteWorkflow();
 }
 
 if (require.main === module) {

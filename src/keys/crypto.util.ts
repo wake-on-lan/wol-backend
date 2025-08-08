@@ -11,7 +11,6 @@ export class CryptoUtil {
     try {
       const buffer = Buffer.from(data, 'base64');
 
-      // Use user's public key to encrypt data so only user can decrypt with their private key
       const encrypted = crypto.publicEncrypt(
         {
           key: userPublicKey,
@@ -37,7 +36,6 @@ export class CryptoUtil {
     try {
       const buffer = Buffer.from(data, 'base64');
 
-      // Use server's private key to decrypt data encrypted with server's public key
       const decrypted = crypto.privateDecrypt(
         {
           key: serverKey.privateKeyPem,

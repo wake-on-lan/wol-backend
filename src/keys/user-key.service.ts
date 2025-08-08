@@ -1,9 +1,9 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, LessThan } from 'typeorm';
-import { ServerKey } from '../database/entities/server-key.entity';
+import { Repository, LessThan } from 'typeorm';
 import { UserPublicKey } from '../database/entities/user-public-key.entity';
-import { CryptoUtil } from 'src/crypto/crypto.util';
+import { CryptoUtil } from 'src/keys/crypto.util';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 export interface AuthenticatedUser {
   userId: number;
@@ -15,14 +15,13 @@ export interface AuthenticatedRequest {
 }
 
 @Injectable()
-export class KeysService {
+export class UserKeyService {
+  private readonly logger = new Logger(UserKeyService.name);
+
   constructor(
-    @InjectRepository(ServerKey)
-    private serverKeyRepository: Repository<ServerKey>,
     @InjectRepository(UserPublicKey)
     private userPublicKeyRepository: Repository<UserPublicKey>,
   ) {}
-
 
   validatePublicKey(publicKeyPem: string): boolean {
     try {
@@ -68,7 +67,7 @@ export class KeysService {
 
   async getUserPublicKey(userId: number): Promise<UserPublicKey | null> {
     return this.userPublicKeyRepository.findOne({
-      where: { userId },
+      where: { userId, isActive: true },
     });
   }
 
@@ -79,5 +78,18 @@ export class KeysService {
       },
       { isActive: false },
     );
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async handleUserKeyExpiration() {
+    this.logger.log('Running key expiration check...');
+
+    try {
+      await this.deactivateExpiredUserKeys();
+
+      this.logger.log('Key expiration check completed');
+    } catch (error) {
+      this.logger.error('Error during key expiration check', error);
+    }
   }
 }

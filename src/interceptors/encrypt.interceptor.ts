@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Observable, from } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
-import { CryptoService } from 'src/crypto/crypto.service';
+import { CryptoService } from 'src/keys/crypto.service';
 
 @Injectable()
 export class EncryptionInterceptor implements NestInterceptor {

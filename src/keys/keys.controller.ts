@@ -8,8 +8,9 @@ import {
   ValidationPipe,
   UseInterceptors,
 } from '@nestjs/common';
-import * as keysService from './keys.service';
-import { ServerContextService } from '../servercontext/server-context.service';
+import * as userKeyService from './user-key.service';
+import { ServerKeyService } from './server-key.service';
+import { UserKeyService } from './user-key.service';
 import { JwtAuthGuard } from '../auth/jwt.strategy';
 import { RegisterKeyDto } from './dto/register-key.dto';
 import { EncryptionInterceptor } from 'src/interceptors/encrypt.interceptor';
@@ -17,27 +18,28 @@ import { EncryptionInterceptor } from 'src/interceptors/encrypt.interceptor';
 @Controller('keys')
 export class KeysController {
   constructor(
-    private keysService: keysService.KeysService,
-    private serverContextService: ServerContextService,
+    private userKeyService: UserKeyService,
+    private serverKeyService: ServerKeyService,
   ) {}
 
   @Get('server-public')
   @UseGuards(JwtAuthGuard)
   async getServerPublicKey() {
-    const serverKey = await this.serverContextService.getCurrentServerKey();
+    const serverKey = await this.serverKeyService.getCurrentServerKey();
     return {
       publicKey: serverKey.publicKeyPem,
-      expiresAt: serverKey.expiresAt,
+      expiresAt: serverKey.expiresAt.toLocaleString(),
     };
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('register')
+  @UseInterceptors(EncryptionInterceptor)
   async registerPublicKey(
-    @Request() req: keysService.AuthenticatedRequest,
+    @Request() req: userKeyService.AuthenticatedRequest,
     @Body(ValidationPipe) registerKeyDto: RegisterKeyDto,
   ) {
-    const userPublicKey = await this.keysService.registerUserPublicKey(
+    const userPublicKey = await this.userKeyService.registerUserPublicKey(
       req.user.userId,
       registerKeyDto.publicKey,
     );
@@ -46,15 +48,15 @@ export class KeysController {
       id: userPublicKey.id,
       expiresAt: userPublicKey.expiresAt,
       isActive: userPublicKey.isActive,
-      createdAt: userPublicKey.createdAt,
+      createdAt: userPublicKey.createdAt.toLocaleString(),
     };
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('my-key')
   @UseInterceptors(EncryptionInterceptor)
-  async getMyKey(@Request() req: keysService.AuthenticatedRequest) {
-    const key = await this.keysService.getUserPublicKey(req.user.userId);
+  async getMyKey(@Request() req: userKeyService.AuthenticatedRequest) {
+    const key = await this.userKeyService.getUserPublicKey(req.user.userId);
 
     if (!key) {
       return null;
@@ -64,8 +66,7 @@ export class KeysController {
       id: key.id,
       expiresAt: key.expiresAt,
       isActive: key.isActive,
-      createdAt: key.createdAt,
-      isExpired: new Date() > key.expiresAt,
+      createdAt: key.createdAt.toLocaleString(),
     };
   }
 }

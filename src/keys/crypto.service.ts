@@ -1,11 +1,9 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
 import * as crypto from 'crypto';
-import { UserPublicKey } from '../database/entities/user-public-key.entity';
 import { Message } from 'src/interceptors/interceptor.types';
-import { ServerContextService } from 'src/servercontext/server-context.service';
+import { ServerKeyService } from 'src/keys/server-key.service';
 import { CryptoUtil } from './crypto.util';
+import { UserKeyService } from 'src/keys/user-key.service';
 
 export interface KeyPair {
   publicKey: string;
@@ -16,28 +14,12 @@ export interface KeyPair {
 export class CryptoService {
   private readonly ALGORITHM = 'aes-256-cbc';
 
-  constructor(
-    @InjectRepository(UserPublicKey)
-    private userPublicKeyRepository: Repository<UserPublicKey>,
-    private serverContextService: ServerContextService,
-  ) {}
-  async getUserPublicKey(userId: number): Promise<UserPublicKey | null> {
-    return this.userPublicKeyRepository.findOne({
-      where: {
-        userId,
-        isActive: true,
-        expiresAt: MoreThan(new Date()),
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-    });
-  }
+  constructor(private serverKeyService: ServerKeyService, private userKeyService: UserKeyService) {}
 
   async decrypt(message: Message): Promise<string> {
     try {
       const { data, key, iv } = message as Message;
-      const serverKey = await this.serverContextService.getCurrentServerKey();
+      const serverKey = await this.serverKeyService.getCurrentServerKey();
 
       const decryptedKey = await CryptoUtil.decryptRSA(key, serverKey);
       const decryptedIv = await CryptoUtil.decryptRSA(iv, serverKey);
@@ -60,7 +42,8 @@ export class CryptoService {
 
   async encrypt(data: string, userId: number): Promise<Message> {
     try {
-      const userPublicKeyEntity = await this.getUserPublicKey(userId);
+      const userPublicKeyEntity = await this.userKeyService.getUserPublicKey(userId);
+      
       if (!userPublicKeyEntity) {
         throw new HttpException(
           'User public key not found or expired',
@@ -92,5 +75,4 @@ export class CryptoService {
       );
     }
   }
-
 }

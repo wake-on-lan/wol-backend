@@ -21,8 +21,13 @@ export interface ServerConfig {
   port: number;
   nodeEnv: string;
   allowedOrigins: string[];
+  privateKey: ServerKeyConfig;
 }
 
+export interface ServerKeyConfig {
+  expireIn: string;
+  rotationCutoff: string;
+}
 export interface EncryptionConfig {
   databaseMasterKey: string;
 }
@@ -52,9 +57,13 @@ function config(): Config {
       expiresIn: process.env.JWT_EXPIRES_IN || '24h',
     },
     server: {
-      port: parseInt(process.env.PORT || '') || 3000,
+      port: parseInt(process.env.PORT || '3000'),
       nodeEnv: process.env.NODE_ENV || 'development',
       allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001').split(','),
+      privateKey: {
+        expireIn: process.env.EXPIRE_PRIVATE_KEY_IN || '24h',
+        rotationCutoff: process.env.ROTATION_CUTOFF || '1h',
+      }
     },
     encryption: {
       databaseMasterKey: masterKey,

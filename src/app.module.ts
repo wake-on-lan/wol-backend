@@ -7,15 +7,13 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { KeysModule } from './keys/keys.module';
 import { CommandsModule } from './commands/commands.module';
-import { SchedulerModule } from './scheduler/scheduler.module';
 import { DatabaseModule } from './database/database.module';
 import { createDatabaseConfig } from './database/database.config';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { ServerKeySubscriber } from './database/entities/server-key.subscriber';
 import config from './config';
-import { EncryptionModule } from './database/encryption/encryption.module';
-import { CryptoModule } from './crypto/crypto.module';
-import { ServerContextModule } from './servercontext/server-context.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { KeysController } from './keys/keys.controller';
 
 @Module({
   imports: [
@@ -29,16 +27,13 @@ import { ServerContextModule } from './servercontext/server-context.module';
         ...createDatabaseConfig(configService),
       }),
     }),
-    ServerContextModule,
+    ScheduleModule.forRoot(),
     AuthModule,
     KeysModule,
-    EncryptionModule,
     CommandsModule,
-    SchedulerModule,
     DatabaseModule,
-    CryptoModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, KeysController],
   providers: [
     AppService,
     ConfigService,

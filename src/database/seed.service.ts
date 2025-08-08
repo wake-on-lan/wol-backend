@@ -4,9 +4,9 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import { User } from './entities/user.entity';
-import { ServerContextService } from '../servercontext/server-context.service';
+import { ServerKeyService } from '../keys/server-key.service';
 import { ConfigService } from '@nestjs/config';
-import { CryptoUtil } from 'src/crypto/crypto.util';
+import { CryptoUtil } from 'src/keys/crypto.util';
 import { ServerKey } from './entities/server-key.entity';
 
 @Injectable()
@@ -25,11 +25,10 @@ export class SeedService implements OnModuleInit {
     this.logger.log('🌱 Starting database seeding...');
     try {
       await this.seedUsers();
-      await this.initializeServerKey();
       this.logger.log('✅ Database seeding completed successfully');
     } catch (error) {
       this.logger.error('❌ Database seeding failed', error);
-      throw error;
+      process.exit(1);
     }
   }
 
@@ -75,23 +74,6 @@ export class SeedService implements OnModuleInit {
       }
     } else {
       this.logger.log('Users already exist, skipping seed');
-    }
-  }
-
-  private async initializeServerKey() {
-    try {
-      const keyPair = CryptoUtil.generateKeyPair();
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24);
-
-      const newKey = this.serverKeyRepository.create({
-        publicKeyPem: keyPair.publicKey,
-        privateKeyPem: keyPair.privateKey,
-        expiresAt,
-        isActive: true,
-      });
-    } catch (error) {
-      this.logger.error('Failed to initialize server key', error);
     }
   }
 }

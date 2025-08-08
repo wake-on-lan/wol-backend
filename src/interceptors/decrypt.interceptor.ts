@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Request } from 'express';
-import { CryptoService } from 'src/crypto/crypto.service';
+import { CryptoService } from 'src/keys/crypto.service';
 import { Reflector } from '@nestjs/core';
 import { Message } from './interceptor.types';
 
