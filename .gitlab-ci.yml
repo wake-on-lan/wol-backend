@@ -42,6 +42,6 @@ deploy:
     - scp package.json $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
     - scp package-lock.json $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
     - scp -r dist/ $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/${DEPLOY_USER}/wol-backend && npm ci --only=production"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/${DEPLOY_USER}/wol-backend && npm ci --omit=dev"
   tags:
     - node
