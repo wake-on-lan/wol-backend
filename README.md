@@ -56,7 +56,7 @@ A secure NestJS-based backend service that provides authenticated Wake-on-LAN fu
 
 ### Prerequisites
 - Node.js 16+ 
-- npm or yarn
+- yarn
 
 ### Installation
 
@@ -66,7 +66,7 @@ git clone <repository-url>
 cd wake-on-lan
 
 # Install dependencies
-npm install
+yarn install
 
 # Copy environment configuration
 cp .env.example .env
@@ -114,13 +114,13 @@ openssl rand -hex 32
 
 ```bash
 # Development mode with hot reload
-npm run start:dev
+yarn start:dev
 
 # Production mode  
-npm run start:prod
+yarn start:prod
 
 # Standard mode
-npm run start
+yarn start
 ```
 
 The server will start on port 3000 (or your configured PORT).
@@ -293,33 +293,33 @@ This script automatically:
 
 ```bash
 # Run linting
-npm run lint
+yarn lint
 
 # Format code
-npm run format
+yarn format
 ```
 
 ### Testing
 
 ```bash
 # Run unit tests
-npm run test
+yarn test
 
 # Run tests with coverage
-npm run test:cov
+yarn test:cov
 
 # Run e2e tests
-npm run test:e2e
+yarn test:e2e
 
 # Watch mode
-npm run test:watch
+yarn test:watch
 ```
 
 ### Build
 
 ```bash
 # Build for production
-npm run build
+yarn build
 ```
 
 ## Production Deployment

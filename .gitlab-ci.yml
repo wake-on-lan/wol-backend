@@ -7,13 +7,13 @@ stages:
 build:
   stage: build
   script:
-    - npm ci
-    - npm run build
+    - yarn install --frozen-lockfile
+    - yarn build
   artifacts:
     paths:
       - dist/
       - package.json
-      - package-lock.json
+      - yarn.lock
     expire_in: 1 hour
   only:
     - /^v\d+\.\d+\.\d+$/
@@ -40,8 +40,8 @@ deploy:
     - ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
   script:
     - scp package.json $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
-    - scp package-lock.json $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
+    - scp yarn.lock $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
     - scp -r dist/ $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
-    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/${DEPLOY_USER}/wol-backend && npm ci --omit=dev"
+    - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/${DEPLOY_USER}/wol-backend && yarn install --production --frozen-lockfile"
   tags:
     - node

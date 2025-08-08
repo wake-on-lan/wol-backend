@@ -24,6 +24,9 @@
           paths = with pkgs; [
             curl
             jq
+            yarn
+            python3
+            node-gyp
             nodejs_20
             claude-code
           ];
