@@ -38,9 +38,11 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sqlite3": "^5.1.7",
+    "is-reachable": "^5.2.1",
     "ssh2": "^1.16.0",
     "typeorm": "^0.3.25",
-    "wake_on_lan": "^1.0.0"
+    "wake_on_lan": "^1.0.0",
+    "ping": "^0.4.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -57,6 +59,7 @@
     "@types/ssh2": "^1.15.5",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
+    "@types/ping": "^0.4.4",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",

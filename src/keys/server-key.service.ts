@@ -51,8 +51,8 @@ export class ServerKeyService implements OnModuleInit {
 
     if (needsRotation) {
       if (key) {
-        await this.repository.update(key.id, { isActive: false });
-        this.logger.log(`Deactivated old server key (ID: ${key.id})`);
+        await this.repository.delete(key.id);
+        this.logger.log(`Deleted old server key (ID: ${key.id})`);
       }
 
       key = await this.createKey();

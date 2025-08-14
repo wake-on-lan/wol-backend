@@ -46,7 +46,7 @@ export class KeysController {
 
     return {
       id: userPublicKey.id,
-      expiresAt: userPublicKey.expiresAt,
+      expiresAt: userPublicKey.expiresAt.toLocaleString(),
       isActive: userPublicKey.isActive,
       createdAt: userPublicKey.createdAt.toLocaleString(),
     };
@@ -64,7 +64,7 @@ export class KeysController {
 
     return {
       id: key.id,
-      expiresAt: key.expiresAt,
+      expiresAt: key.expiresAt.toLocaleString(),
       isActive: key.isActive,
       createdAt: key.createdAt.toLocaleString(),
     };

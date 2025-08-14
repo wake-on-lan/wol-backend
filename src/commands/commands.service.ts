@@ -1,10 +1,10 @@
-import {
-  Injectable,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Client } from 'ssh2';
 import * as wol from 'wake_on_lan';
 import find from 'local-devices';
 import { ShellCommandDto } from './dto/shell-command.dto';
+import { PingResponse, promise } from 'ping';
+import isReachable from 'is-reachable';
 
 export interface Device {
   name: string;
@@ -20,7 +20,6 @@ export interface SshConfig {
   password?: string;
   privateKey?: string | Buffer;
 }
-
 
 export interface ShellCommandResponse {
   success: boolean;
@@ -44,10 +43,14 @@ export interface WakeOnLanResponse {
   error?: string;
 }
 
+export interface UpResult {
+  hostname: string;
+  reachable: boolean;
+}
+
 @Injectable()
 export class CommandsService {
-  constructor(
-  ) {}
+  constructor() {}
 
   async scanLocalDevices(): Promise<Device[]> {
     const devices = await find();
@@ -64,7 +67,9 @@ export class CommandsService {
     return Array.from(uniqueDevicesMap.values());
   }
 
-  async executeShellCommand(sshConfig: ShellCommandDto): Promise<ShellCommandResponse> {
+  async executeShellCommand(
+    sshConfig: ShellCommandDto,
+  ): Promise<ShellCommandResponse> {
     if (!this.isValidSshConfig(sshConfig)) {
       return {
         success: false,
@@ -175,8 +180,11 @@ export class CommandsService {
   async sendWakeOnLan(payload: WakeOnLanPayload): Promise<WakeOnLanResponse> {
     try {
       const { macAddress } = payload;
-      
-      if (!macAddress || !/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(macAddress)) {
+
+      if (
+        !macAddress ||
+        !/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(macAddress)
+      ) {
         throw new Error('Invalid MAC address format');
       }
 
@@ -205,6 +213,23 @@ export class CommandsService {
         timestamp: new Date().toLocaleString(),
       };
     }
+  }
+
+  async checkHttpsAvailability(hostname: string): Promise<UpResult> {
+    try {
+      const reachable = await isReachable(hostname);
+      return { hostname, reachable };
+    } catch {
+      return { hostname, reachable: false };
+    }
+  }
+
+  async checkHost(hostname: string): Promise<PingResponse> {
+    const response = await promise.probe(hostname, {
+      timeout: 2, // Timeout in seconds
+      extra: ['-c', '3'], // Send 3 ping requests
+    });
+    return response;
   }
 
 }

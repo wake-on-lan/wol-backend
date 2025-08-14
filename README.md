@@ -1,18 +1,20 @@
 # Wake-on-LAN Encrypted Relay Server
 
-A secure NestJS-based backend service that provides authenticated Wake-on-LAN functionality with end-to-end encryption. The server acts as a secure relay for network commands, featuring hybrid RSA/AES encryption and automatic key rotation.
+A secure NestJS-based backend service that provides authenticated Wake-on-LAN functionality with end-to-end RSA/AES encryption. The server acts as an encrypted relay for network commands, device discovery, host monitoring, and remote command execution with automatic key rotation and comprehensive security features.
 
 ## Features
 
 ### Core Functionality
 - **Wake-on-LAN**: Send magic packets to wake up remote devices
-- **Network Scanning**: Discover devices on the local network
-- **Shell Command Execution**: Execute system commands remotely (authenticated users only)
-- **Hybrid Encryption**: RSA + AES encryption for secure communications
-- **JWT Authentication**: Token-based user authentication
+- **Network Scanning**: Discover devices on the local network using broadcast scans
+- **Host Monitoring**: Check host availability via ping and HTTPS connectivity
+- **Shell Command Execution**: Execute SSH commands remotely with full encryption
+- **Interactive Client Tools**: Command-line scripts for easy interaction
+- **Hybrid Encryption**: RSA-2048 + AES-256 encryption for secure communications
+- **JWT Authentication**: Token-based user authentication with secure sessions
 - **Database Encryption**: All sensitive data encrypted at rest with AES-256-GCM
 - **Encrypted User Management**: Generate and deploy encrypted user configurations
-- **CI/CD Support**: GitLab CI integration for automated deployments
+- **SystemD Integration**: Production-ready service configuration
 
 ### Security Model
 - **Client-Generated Keys**: Users generate RSA key pairs locally (private keys never transmitted)
@@ -36,21 +38,42 @@ A secure NestJS-based backend service that provides authenticated Wake-on-LAN fu
 ## API Endpoints
 
 ### Authentication
-- `POST /auth/login` - Authenticate user and receive JWT token
+- `POST /auth/login` - Authenticate user with username/password and receive JWT token
 
 ### Key Management
-- `GET /keys/server-public` - Get server's current public key
-- `POST /keys/register` - Register client's public key (requires authentication)
-- `GET /keys/my-keys` - List registered keys for authenticated user
-- `GET /keys/status` - Check key expiration status
+- `GET /keys/server-public` - Get server's current public key (requires auth)
+- `POST /keys/register` - Register client's public key (requires auth, encrypted response)
+- `GET /keys/my-key` - Get current user's registered key info (requires auth, encrypted response)
 
-### Commands
-- `POST /commands/send` - Send encrypted command and receive encrypted response
-- `GET /commands/scan-devices` - Scan network for devices
-- `POST /commands/shell` - Execute shell commands
-- `POST /commands/wake-on-lan` - Send Wake-on-LAN magic packet
+### Commands (All require authentication and registered public key)
+- `GET /commands/scan-devices` - Scan local network for devices (encrypted response)
+- `POST /commands/wake-on-lan` - Send Wake-on-LAN magic packet (encrypted request/response)
+- `POST /commands/shell` - Execute remote SSH commands (encrypted request/response)
+- `GET /commands/up?hostname=<host>` - Ping a hostname (encrypted response)
+- `GET /commands/checkHttpsAvailability?hostname=<host>` - Check HTTPS availability (encrypted response)
 
-**Note**: All command endpoints require authentication and a registered public key for encrypted responses.
+### Request/Response Formats
+
+**WakeOnLanDto:**
+```json
+{
+  "macAddress": "XX:XX:XX:XX:XX:XX"
+}
+```
+
+**ShellCommandDto:**
+```json
+{
+  "host": "192.168.1.100",
+  "port": 22,
+  "user": "username",
+  "command": "ls -la",
+  "password": "password",
+  "privateKey": "base64_encoded_ssh_key"
+}
+```
+
+**Note**: All command endpoints require authentication and encryption. Responses are encrypted with the user's registered public key.
 
 ## Quick Start
 
@@ -227,10 +250,106 @@ curl -X GET http://localhost:3000/commands/scan-devices \
 
 ## Utility Scripts
 
-The `/scripts` directory contains utility scripts for testing and user management:
+The `/scripts` directory contains powerful utility scripts for testing, user management, and interactive operations:
+
+### wol-interactive.js
+**Interactive multi-function client** - The main utility script providing menu-driven or direct access to all server functionality.
+
+#### Interactive Menu Mode (Default)
+```bash
+# Launch interactive menu
+node scripts/wol-interactive.js
+
+# With custom server
+node scripts/wol-interactive.js --url http://192.168.1.100:3000 --username admin --password admin123
+```
+
+#### Direct Action Mode
+```bash
+# Wake-on-LAN: Scan devices and select one to wake
+node scripts/wol-interactive.js --action wake
+
+# HTTPS Check: Test if hostname is reachable via HTTPS
+node scripts/wol-interactive.js --action https --hostname google.com
+
+# Ping Check: Test if host responds to ping
+node scripts/wol-interactive.js --action ping --hostname 192.168.1.1
+
+# Show help
+node scripts/wol-interactive.js --help
+```
+
+#### Available Options
+- `-u, --url <url>` - Base URL of the WOL server (default: http://localhost:3000)
+- `--username <username>` - Username for authentication (default: admin)
+- `--password <password>` - Password for authentication (default: admin123)
+- `-a, --action <action>` - Action: wake, https, ping, or interactive (default: interactive)
+- `--hostname <hostname>` - Hostname for https/ping actions
+
+**Features:**
+- Full end-to-end encryption workflow automation
+- Device discovery and interactive selection
+- Host availability monitoring
+- User-friendly menu interface
+- Complete error handling and status reporting
+
+### shell-command.js
+Execute remote SSH commands through the encrypted API with full authentication support.
+
+```bash
+# Basic command execution
+node scripts/shell-command.js --command "ls -la ~"
+
+# With custom host and authentication
+node scripts/shell-command.js --command "df -h" --password mypassword --host 192.168.1.100
+
+# Using SSH private key
+node scripts/shell-command.js --command "ps aux" --key /path/to/private/key --user myuser
+
+# Show help
+node scripts/shell-command.js --help
+```
+
+**Features:**
+- Complete encryption workflow demonstration
+- SSH command execution via encrypted API
+- Supports both password and private key authentication
+- Real-time command output display
+
+### test-auth.js
+Comprehensive testing script for authentication and key management endpoints. Tests the complete auth workflow including login, key exchange, and encrypted responses.
+
+```bash
+# Basic authentication test
+node scripts/test-auth.js
+
+# With custom server and credentials
+node scripts/test-auth.js --url http://192.168.1.100:3000 --username testuser --password test123
+
+# Show help
+node scripts/test-auth.js --help
+```
+
+**Available Options:**
+- `-u, --url <url>` - Base URL of the WOL server (default: http://localhost:3000)
+- `--username <username>` - Username for authentication (default: admin)
+- `--password <password>` - Password for authentication (default: admin123)
+
+**Test Coverage:**
+- `POST /auth/login` - User authentication with username/password
+- `GET /keys/server-public` - Server public key retrieval
+- `POST /keys/register` - Client public key registration
+- `GET /keys/my-key` - User's registered key information
+
+**Features:**
+- Complete RSA key pair generation and management
+- Full encryption/decryption workflow testing
+- Detailed test output with step-by-step results
+- Error handling and validation testing
+- Compatible with both development and production environments
 
 ### encrypt-users.js
-Encrypts user data for secure deployment. Creates encrypted user files that can be used to seed the database with pre-configured accounts.
+Encrypts user data for secure production deployment.
 
 ```bash
 # Basic usage with environment variable
@@ -243,49 +362,26 @@ node scripts/encrypt-users.js --input users.json --output users.encrypted.json -
 node scripts/encrypt-users.js --help
 ```
 
-Input JSON format:
+**Input JSON format:**
 ```json
 {
   "users": [
     {
       "username": "admin",
       "password": "securePassword123"
+    },
+    {
+      "username": "user",
+      "password": "userPassword456"
     }
   ]
 }
 ```
 
-### shell-command.js
-Execute remote shell commands through the encrypted API. Supports both password and key-based SSH authentication.
-
-```bash
-# Basic command execution
-node scripts/shell-command.js --command "ls -la ~"
-
-# With custom authentication
-node scripts/shell-command.js --command "df -h" --password mypassword --host 192.168.1.100
-
-# Using SSH key
-node scripts/shell-command.js --command "ps aux" --key /path/to/private/key --user myuser
-
-# Show help
-node scripts/shell-command.js --help
-```
-
-### test-workflow.js
-Complete end-to-end workflow test that demonstrates the full encryption lifecycle including authentication, key exchange, device scanning, and Wake-on-LAN operations.
-
-```bash
-# Run complete workflow test
-node scripts/test-workflow.js
-```
-
-This script automatically:
-- Authenticates with the API
-- Generates client RSA key pair
-- Registers public key with server
-- Scans for network devices
-- Tests Wake-on-LAN functionality
+**Features:**
+- AES-256-GCM encryption with PBKDF2 key derivation
+- Batch user creation for production deployment
+- Secure credential management
 
 ## Development
 
@@ -326,20 +422,46 @@ yarn build
 
 ### Security Checklist
 
-- [ ] Generate secure `DATABASE_MASTER_KEY` (64 hex characters)
+- [ ] Generate secure `DATABASE_MASTER_KEY` (64 hex characters): `openssl rand -hex 32`
 - [ ] Change `JWT_SECRET` to a strong random value
-- [ ] Update default user passwords or remove test accounts
+- [ ] Update default user passwords or create encrypted user file
 - [ ] Set `NODE_ENV=production`
 - [ ] Configure appropriate `ALLOWED_ORIGINS` for CORS
 - [ ] Set `DATABASE_SYNCHRONIZE=false` in production
-- [ ] Enable HTTPS/TLS
+- [ ] Enable HTTPS/TLS termination (reverse proxy)
 - [ ] Set up monitoring and logging
 - [ ] Configure database backups
-- [ ] Review server security configuration
+- [ ] Review server security and firewall configuration
+
+### SystemD Service Installation
+
+The repository includes a SystemD service configuration for production deployment:
+
+```bash
+# Create dedicated user
+sudo useradd -r -s /bin/false wakeonlan
+
+# Copy application files
+sudo cp -r /path/to/wol-backend /home/wakeonlan/
+sudo chown -R wakeonlan:wakeonlan /home/wakeonlan/wol-backend
+
+# Install SystemD service
+sudo cp systemd/wol-backend.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable wol-backend.service
+
+# Configure environment
+sudo cp .env.example /home/wakeonlan/wol-backend/.env
+# Edit the .env file with production values
+
+# Start service
+sudo systemctl start wol-backend.service
+sudo systemctl status wol-backend.service
+```
 
 ### Environment Variables
 
-For production, ensure these are properly configured:
+For production, ensure these are properly configured in `/home/wakeonlan/wol-backend/.env`:
 
 ```env
 NODE_ENV=production
@@ -349,26 +471,84 @@ DATABASE_SYNCHRONIZE=false
 DATABASE_LOGGING=false
 PORT=3000
 ALLOWED_ORIGINS=https://yourdomain.com
+EXPIRE_PRIVATE_KEY_IN=24h
+ROTATION_CUTOFF=1h
+```
+
+### Production User Management
+
+Create an encrypted user file for production:
+
+```bash
+# Create users.json
+echo '{
+  "users": [
+    {"username": "admin", "password": "secure_admin_password"},
+    {"username": "operator", "password": "secure_operator_password"}
+  ]
+}' > users.json
+
+# Encrypt for production
+node scripts/encrypt-users.js --input users.json --output users.encrypted.json --key $DATABASE_MASTER_KEY
+
+# Deploy encrypted file
+sudo cp users.encrypted.json /home/wakeonlan/wol-backend/
+sudo chown wakeonlan:wakeonlan /home/wakeonlan/wol-backend/users.encrypted.json
 ```
 
 ## Architecture
 
 ### Modules
-- **AppModule**: Main application module
-- **AuthModule**: JWT authentication and user management
-- **KeysModule**: RSA key generation, storage, and lifecycle
-- **CommandsModule**: Command processing and execution
-- **DatabaseModule**: SQLite configuration and data seeding
+- **AppModule**: Main application orchestrator integrating all modules with global middleware
+- **AuthModule**: JWT authentication, user validation, and Passport strategy implementation
+- **KeysModule**: RSA key generation, automatic rotation (24h), and hybrid encryption management
+- **CommandsModule**: Network operations (WOL, SSH, ping, HTTPS), device scanning, and encrypted command processing
+- **DatabaseModule**: SQLite with TypeORM, automatic seeding, and encrypted data storage
 
-### Security Features
+### Database Schema
+
+**User Entity:**
+- `id` (Primary Key)
+- `username` (Unique, not encrypted)
+- `passwordHash` (bcrypt hashed)
+- `createdAt` (Timestamp)
+
+**UserPublicKey Entity:**
+- `id` (Primary Key)
+- `userId` (Foreign Key → User)
+- `publicKeyPem` (RSA public key, encrypted at rest)
+- `expiresAt` (24-hour expiration)
+- `isActive` (Boolean status)
+- `createdAt` (Timestamp)
+
+**ServerKey Entity:**
+- `id` (Primary Key)
+- `publicKeyPem` (RSA public key, encrypted at rest)
+- `privateKeyPem` (RSA private key, encrypted at rest)
+- `expiresAt` (24-hour expiration)
+- `isActive` (Boolean status)
+- `createdAt` (Timestamp)
+
+### Security Architecture
+
+**Encryption Layers:**
+1. **Transport Security**: HTTPS/TLS (reverse proxy recommended)
+2. **Message Security**: RSA-2048 + AES-256-CBC hybrid encryption
+3. **Database Security**: AES-256-GCM encryption for sensitive fields
+4. **Authentication**: JWT tokens with 24-hour expiration
+5. **Key Management**: Automated rotation with 1-hour grace period
+
+**Security Features:**
 - Input validation with class-validator
-- Global exception handling
-- CORS protection
-- JWT token authentication
-- RSA-2048 message encryption
-- AES-256-GCM database encryption
-- Automated key rotation
-- Password hashing with bcrypt
+- Global exception handling with sanitized error responses
+- CORS protection with configurable origins
+- JWT token authentication with secure secrets
+- RSA-2048 message encryption for API communications
+- AES-256-GCM database field encryption
+- Automated key rotation every 24 hours
+- bcrypt password hashing with salt rounds
+- Request/response encryption interceptors
+- Private key isolation (never transmitted)
 
 ## License
 
