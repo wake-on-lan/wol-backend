@@ -1,4 +1,6 @@
 image: node:20.11.1
+default:
+  timeout: 30m
 
 stages:
   - build
