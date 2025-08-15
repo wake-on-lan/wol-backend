@@ -6,7 +6,7 @@ set -e
 LOG_FILE="/tmp/yarn_install.log"
 EXIT_CODE_FILE="/tmp/yarn_exit_code"
 SCREEN_SESSION="yarn_install"
-
+DEPLOY_USER=$(whoami)
 # Cleanup any existing files
 rm -f "$LOG_FILE" "$EXIT_CODE_FILE"
 
