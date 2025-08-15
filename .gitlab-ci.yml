@@ -1,9 +1,9 @@
 image: node:20.11.1
-
+default:
+  timeout: 30m
 stages:
   - build
   - deploy
-
 build:
   stage: build
   script:
@@ -19,7 +19,6 @@ build:
     - /^v\d+\.\d+\.\d+$/
   tags:
     - node
-
 deploy:
   stage: deploy
   dependencies:
@@ -42,6 +41,9 @@ deploy:
     - scp package.json $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
     - scp yarn.lock $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
     - scp -r dist/ $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
-    - ssh -o ConnectTimeout=0 -o TCPKeepAlive=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=20 $DEPLOY_USER@$DEPLOY_HOST "cd /home/${DEPLOY_USER}/wol-backend && yarn config set network-timeout 1800000 && timeout 7200 yarn install --production --frozen-lockfile --network-timeout 1800000"
+    # Deploy the build script
+    - scp scripts/deploy.bash $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend/deploy.bash
+    # Make script executable and run it
+    - ssh -o ConnectTimeout=0 -o TCPKeepAlive=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=20 $DEPLOY_USER@$DEPLOY_HOST "chmod +x /home/${DEPLOY_USER}/wol-backend/deploy.bash && cd /home/${DEPLOY_USER}/wol-backend && ./deploy.bash"
   tags:
     - node
