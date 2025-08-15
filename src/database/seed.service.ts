@@ -41,7 +41,7 @@ export class SeedService implements OnModuleInit {
 
   private async seedUsers() {
     let existingUsers = 0;
-    if (this.configService.get<string>('database.type') === 'sqlite') {
+    if (this.configService.get<string>('database.type')?.includes('sqlite')) {
       const databasePath = this.configService.get('database.name');
 
       // Check if database file exists, if not, the count query will fail

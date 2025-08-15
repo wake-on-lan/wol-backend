@@ -1,6 +1,4 @@
 image: node:20.11.1
-default:
-  timeout: 60m
 
 stages:
   - build
@@ -9,7 +7,7 @@ stages:
 build:
   stage: build
   script:
-    - yarn install --frozen-lockfile
+    - yarn install --frozen-lockfile --production
     - yarn build
   artifacts:
     paths:
@@ -44,6 +42,6 @@ deploy:
     - scp package.json $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
     - scp yarn.lock $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
     - scp -r dist/ $DEPLOY_USER@$DEPLOY_HOST:/home/${DEPLOY_USER}/wol-backend
-    - ssh -o ConnectTimeout=0 -o TCPKeepAlive=yes -o ServerAliveInterval=60 -o ServerAliveCountMax=120 $DEPLOY_USER@$DEPLOY_HOST "cd /home/${DEPLOY_USER}/wol-backend && timeout 3600 yarn install --production --frozen-lockfile"
+    - ssh -o ConnectTimeout=0 -o TCPKeepAlive=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=20 $DEPLOY_USER@$DEPLOY_HOST "cd /home/${DEPLOY_USER}/wol-backend && yarn config set network-timeout 1800000 && timeout 7200 yarn install --production --frozen-lockfile --network-timeout 1800000"
   tags:
     - node
