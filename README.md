@@ -275,6 +275,9 @@ node scripts/wol-interactive.js --action https --hostname google.com
 # Ping Check: Test if host responds to ping
 node scripts/wol-interactive.js --action ping --hostname 192.168.1.1
 
+# Shell Command: Execute remote SSH commands (interactive prompts)
+node scripts/wol-interactive.js --action command
+
 # Show help
 node scripts/wol-interactive.js --help
 ```
@@ -283,38 +286,16 @@ node scripts/wol-interactive.js --help
 - `-u, --url <url>` - Base URL of the WOL server (default: http://localhost:3000)
 - `--username <username>` - Username for authentication (default: admin)
 - `--password <password>` - Password for authentication (default: admin123)
-- `-a, --action <action>` - Action: wake, https, ping, or interactive (default: interactive)
-- `--hostname <hostname>` - Hostname for https/ping actions
+- `-a, --action <action>` - Action: wake, https, ping, command, or interactive (default: interactive)
+- `--hostname <hostname>` - Hostname for https/ping actions (not supported for command action)
 
 **Features:**
 - Full end-to-end encryption workflow automation
 - Device discovery and interactive selection
 - Host availability monitoring
+- Remote SSH command execution with interactive prompts
 - User-friendly menu interface
 - Complete error handling and status reporting
-
-### shell-command.js
-Execute remote SSH commands through the encrypted API with full authentication support.
-
-```bash
-# Basic command execution
-node scripts/shell-command.js --command "ls -la ~"
-
-# With custom host and authentication
-node scripts/shell-command.js --command "df -h" --password mypassword --host 192.168.1.100
-
-# Using SSH private key
-node scripts/shell-command.js --command "ps aux" --key /path/to/private/key --user myuser
-
-# Show help
-node scripts/shell-command.js --help
-```
-
-**Features:**
-- Complete encryption workflow demonstration
-- SSH command execution via encrypted API
-- Supports both password and private key authentication
-- Real-time command output display
 
 ### test-auth.js
 Comprehensive testing script for authentication and key management endpoints. Tests the complete auth workflow including login, key exchange, and encrypted responses.

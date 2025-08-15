@@ -4,6 +4,8 @@ const crypto = require('crypto');
 const https = require('https');
 const http = require('http');
 const readline = require('readline');
+const fs = require('fs');
+const path = require('path');
 
 // Command line arguments parsing
 function parseArgs() {
@@ -44,7 +46,7 @@ Options:
   -u, --url <url>        Base URL of the WOL server (default: http://localhost:3000)
   --username <username>  Username for authentication (default: admin)
   --password <password>  Password for authentication (default: admin123)
-  -a, --action <action>  Action to perform: wake, https, ping, or interactive (default: interactive)
+  -a, --action <action>  Action to perform: wake, https, ping, command, or interactive (default: interactive)
   --hostname <hostname>  Hostname for https/ping actions
   -h, --help            Show this help message
 
@@ -52,6 +54,7 @@ Actions:
   wake         Scan for devices and wake up a selected device
   https        Check HTTPS availability of a hostname
   ping         Check if a host is up (ping)
+  command      Execute shell commands via SSH
   interactive  Show interactive menu to choose action (default)
 
 Examples:
@@ -59,6 +62,7 @@ Examples:
   node wol-interactive.js --action wake                      # Direct wake action
   node wol-interactive.js --action https --hostname google.com
   node wol-interactive.js --action ping --hostname 192.168.1.1
+  node wol-interactive.js --action command                   # Interactive shell command
         `);
         process.exit(0);
         break;
@@ -312,6 +316,22 @@ class EncryptedAPIClient {
     throw new Error(`Host check failed: ${res.status} - ${JSON.stringify(res.data)}`);
   }
 
+  async sendShellCommand(shellCommand) {
+    const payload = this.encrypt(shellCommand, this.serverPublicKey);
+    const res = await this.makeRequest('POST', '/commands/shell', payload);
+
+    if (res.status === 200 || res.status === 201) {
+      const { data, key, iv } = res.data;
+      if (data && key && iv) {
+        const decrypted = this.decrypt(res.data, this.clientKeyPair.privateKey);
+        return JSON.parse(decrypted);
+      }
+      return res.data;
+    }
+
+    throw new Error(`Shell command failed: ${res.status} - ${JSON.stringify(res.data)}`);
+  }
+
   async initialize() {
     this.generateClientKeyPair();
     await this.login(this.config.username, this.config.password);
@@ -401,6 +421,93 @@ class EncryptedAPIClient {
     }
   }
 
+  async actionCommand() {
+    try {
+      await this.initialize();
+
+      console.log('\n💻 Shell Command Execution\n');
+
+      const host = await this.promptChoice('Enter target host (default: 127.0.0.1): ') || '127.0.0.1';
+      const port = parseInt(await this.promptChoice('Enter SSH port (default: 22): ') || '22');
+      const user = await this.promptChoice('Enter SSH username (default: admin): ') || 'admin';
+      const command = await this.promptChoice('Enter shell command to execute: ');
+
+      if (!command) {
+        console.log('❌ Command is required');
+        return;
+      }
+
+      console.log('\n🔐 Authentication method:');
+      console.log('1. Password');
+      console.log('2. Private key file');
+      const authChoice = await this.promptChoice('Choose authentication method (1-2): ');
+
+      const shellCommand = {
+        host,
+        port,
+        user,
+        command,
+      };
+
+      if (authChoice === '1') {
+        const password = await this.promptChoice('Enter SSH password: ');
+        if (!password) {
+          console.log('❌ Password is required');
+          return;
+        }
+        shellCommand.password = password;
+        console.log(`\n💻 Executing: ${command} (using password auth)`);
+      } else if (authChoice === '2') {
+        const keyPath = await this.promptChoice('Enter path to private key file (default: ../privateKeys/wakeonlan.key): ') || 
+                       path.join(__dirname, '../privateKeys/wakeonlan.key');
+        
+        if (!fs.existsSync(keyPath)) {
+          console.log(`❌ Private key file not found: ${keyPath}`);
+          return;
+        }
+
+        shellCommand.privateKey = fs.readFileSync(keyPath, 'base64');
+        console.log(`\n💻 Executing: ${command} (using key auth)`);
+      } else {
+        console.log('❌ Invalid authentication method');
+        return;
+      }
+
+      console.log(`📡 Target: ${user}@${host}:${port}`);
+
+      const result = await this.sendShellCommand(shellCommand);
+      
+      if (!result.success && result.exitStatus !== 0) {
+        console.error('\n❌ Command execution failed');
+        console.error('Error:', result.message);
+        return;
+      }
+
+      console.log('\n📄 Results:');
+      console.log('==================');
+      if (result.command) {
+        console.log(`Command: ${result.command}`);
+      }
+
+      if (result.timestamp) {
+        console.log(`Timestamp: ${result.timestamp}`);
+      }
+      
+      if (result.message) {
+        console.log('\nOUTPUT:');
+        console.log(result.message.trim());
+      }
+
+      console.log('==================');
+      
+      if (result.success) {
+        console.log('✅ Command executed successfully');
+      }
+    } catch (err) {
+      console.error('❌ Shell command execution failed:', err.message);
+    }
+  }
+
   async showInteractiveMenu() {
     console.log(`
 🔧 WOL Interactive Tool
@@ -409,10 +516,11 @@ Select an action:
 1. Wake on LAN - Scan and wake up a device
 2. HTTPS Check - Check if a hostname is reachable via HTTPS
 3. Ping Check - Check if a host is up (ping)
-4. Exit
+4. Shell Command - Execute shell commands via SSH
+5. Exit
     `);
 
-    const choice = await this.promptChoice('Enter your choice (1-4): ');
+    const choice = await this.promptChoice('Enter your choice (1-5): ');
     
     switch (choice) {
       case '1':
@@ -427,6 +535,9 @@ Select an action:
         await this.actionPing(pingHostname);
         break;
       case '4':
+        await this.actionCommand();
+        break;
+      case '5':
         console.log('👋 Goodbye!');
         return;
       default:
@@ -490,6 +601,13 @@ async function main() {
       break;
     case 'ping':
       await client.actionPing(config.hostname);
+      break;
+    case 'command':
+      if (config.hostname) {
+        console.error('❌ --hostname parameter is not supported for command action. SSH connection details will be prompted interactively.');
+        process.exit(1);
+      }
+      await client.actionCommand();
       break;
     case 'interactive':
     case null:
