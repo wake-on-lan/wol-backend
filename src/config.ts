@@ -47,7 +47,7 @@ function config(): Config {
 
   return {
     database: {
-      type: process.env.DATABASE_TYPE || 'sqlite',
+      type: process.env.DATABASE_TYPE || 'better-sqlite3',
       name: process.env.DATABASE_PATH || 'encrypted-relay.db',
       synchronize: process.env.DATABASE_SYNCHRONIZE === 'true' || true,
       logging: process.env.DATABASE_LOGGING === 'true' || false,

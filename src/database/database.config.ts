@@ -14,7 +14,7 @@ export const createDatabaseConfig = (configService: ConfigService): TypeOrmModul
 
 // Legacy export for backward compatibility
 export const databaseConfig: TypeOrmModuleOptions = {
-  type: 'sqlite',
+  type: 'better-sqlite3',
   database: 'encrypted-relay.db',
   entities: [User, UserPublicKey, ServerKey],
   synchronize: true,
