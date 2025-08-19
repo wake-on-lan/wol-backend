@@ -28,7 +28,7 @@ export class KeysController {
     const serverKey = await this.serverKeyService.getCurrentServerKey();
     return {
       publicKey: serverKey.publicKeyPem,
-      expiresAt: serverKey.expiresAt.toLocaleString(),
+      expiresAt: serverKey.expiresAt.getTime(),
     };
   }
 
@@ -46,9 +46,9 @@ export class KeysController {
 
     return {
       id: userPublicKey.id,
-      expiresAt: userPublicKey.expiresAt.toLocaleString(),
+      expiresAt: userPublicKey.expiresAt.getTime(),
       isActive: userPublicKey.isActive,
-      createdAt: userPublicKey.createdAt.toLocaleString(),
+      createdAt: userPublicKey.createdAt.getTime(),
     };
   }
 
@@ -64,9 +64,9 @@ export class KeysController {
 
     return {
       id: key.id,
-      expiresAt: key.expiresAt.toLocaleString(),
+      expiresAt: key.expiresAt.getTime(),
       isActive: key.isActive,
-      createdAt: key.createdAt.toLocaleString(),
+      createdAt: key.createdAt.getTime(),
     };
   }
 }
