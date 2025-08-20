@@ -42,9 +42,11 @@ export class ServerKeyService implements OnModuleInit {
     const now = new Date();
 
     let key = await this.repository.findOne({
-      where: { isActive: true, expiresAt: MoreThan(now) },
+      where: {
+        isActive: true,
+        expiresAt: MoreThan(now),
+      },
     });
-
     const needsRotation =
       !key ||
       now.getTime() + this.parseDuration(this.serverKeyConfig.rotationCutoff) >=
@@ -70,7 +72,6 @@ export class ServerKeyService implements OnModuleInit {
     const expiresAt = new Date(
       Date.now() + this.parseDuration(this.serverKeyConfig.expireIn),
     );
-
     const newKey = this.repository.create({
       publicKeyPem: publicKey,
       privateKeyPem: privateKey,
@@ -103,7 +104,7 @@ export class ServerKeyService implements OnModuleInit {
     return value * multipliers[unit];
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleServerKeyRotation() {
     this.logger.log('Checking ServerKey rotation...');
 
