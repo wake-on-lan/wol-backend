@@ -44,9 +44,9 @@ export class ServerKeyService implements OnModuleInit {
     let key = await this.repository.findOne({
       where: {
         isActive: true,
-        expiresAt: MoreThan(now),
       },
     });
+    
     const needsRotation =
       !key ||
       now.getTime() + this.parseDuration(this.serverKeyConfig.rotationCutoff) >=
