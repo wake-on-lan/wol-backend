@@ -17,8 +17,9 @@ export class ServerKeyService implements OnModuleInit {
     private readonly repository: Repository<ServerKey>,
     private readonly configService: ConfigService,
   ) {
-    this.serverKeyConfig =
-      this.configService.get<ServerKeyConfig>('server.privateKey') as ServerKeyConfig;
+    this.serverKeyConfig = this.configService.get<ServerKeyConfig>(
+      'server.privateKey',
+    ) as ServerKeyConfig;
   }
 
   async onModuleInit(): Promise<void> {
@@ -55,18 +56,20 @@ export class ServerKeyService implements OnModuleInit {
         this.logger.log(`Deleted old server key (ID: ${key.id})`);
       }
 
-      key = await this.createKey();
-      this.logger.log(`Generated new server key (ID: ${key.id})`);
+      this.cachedKey = await this.createKey();
+      this.logger.log(`Generated new server key (ID: ${this.cachedKey.id})`);
+    } else {
+      this.cachedKey = key;
+      this.logger.debug(`Loaded existing server key (ID: ${key?.id})`);
     }
-
-    this.cachedKey = key;
-    this.logger.debug(`Loaded server key (ID: ${key?.id})`);
   }
 
   private async createKey(): Promise<ServerKey> {
     const { publicKey, privateKey } = CryptoUtil.generateKeyPair();
 
-    const expiresAt = new Date(Date.now() + this.parseDuration(this.serverKeyConfig.expireIn));
+    const expiresAt = new Date(
+      Date.now() + this.parseDuration(this.serverKeyConfig.expireIn),
+    );
 
     const newKey = this.repository.create({
       publicKeyPem: publicKey,
@@ -74,7 +77,7 @@ export class ServerKeyService implements OnModuleInit {
       expiresAt,
       isActive: true,
     });
-    return this.repository.save(newKey);
+    return await this.repository.save(newKey);
   }
 
   private parseDuration(duration: string): number {
