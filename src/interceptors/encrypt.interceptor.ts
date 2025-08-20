@@ -19,14 +19,14 @@ export class EncryptionInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    if (!user) {
-      throw new UnauthorizedException('User not authenticated');
-    }
-
     return next.handle().pipe(
       mergeMap((data) => {
         if (data) {
-          return from(this.cryptoService.encrypt(JSON.stringify(data), user.userId));
+          if(data.userId) {
+            const { userId, ...restData } = data;
+            data = restData;
+          }
+          return from(this.cryptoService.encrypt(JSON.stringify(data), user?.userId || data.userId));
         }
         return from(Promise.resolve(data));
       }),

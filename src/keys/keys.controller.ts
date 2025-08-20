@@ -23,7 +23,6 @@ export class KeysController {
   ) {}
 
   @Get('server-public')
-  @UseGuards(JwtAuthGuard)
   async getServerPublicKey() {
     const serverKey = await this.serverKeyService.getCurrentServerKey();
     return {
