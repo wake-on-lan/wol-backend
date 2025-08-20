@@ -52,11 +52,11 @@ export class CommandsController {
     return result;
   }
 
-  @Get('up')
+  @Get('ping')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(EncryptionInterceptor)
-  async up(@Query('hostname') hostname: string): Promise<PingResponse> {
+  async ping(@Query('hostname') hostname: string): Promise<PingResponse> {
     const result = await this.commandsService.checkHost(hostname);
     return result;
   }
