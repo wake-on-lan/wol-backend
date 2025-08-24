@@ -34,7 +34,7 @@ export class KeysController {
 
   @UseGuards(JwtAuthGuard)
   @Post('register')
-  @UseInterceptors(DecryptionInterceptor, EncryptionInterceptor)
+  @UseInterceptors(EncryptionInterceptor)
   async registerPublicKey(
     @Request() req: userKeyService.AuthenticatedRequest,
     @Body(ValidationPipe) registerKeyDto: RegisterKeyDto,
