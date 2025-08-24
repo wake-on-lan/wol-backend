@@ -14,6 +14,7 @@ import { UserKeyService } from './user-key.service';
 import { JwtAuthGuard } from '../auth/jwt.strategy';
 import { RegisterKeyDto } from './dto/register-key.dto';
 import { EncryptionInterceptor } from 'src/interceptors/encrypt.interceptor';
+import { DecryptionInterceptor } from 'src/interceptors/decrypt.interceptor';
 
 @Controller('keys')
 export class KeysController {
@@ -33,7 +34,7 @@ export class KeysController {
 
   @UseGuards(JwtAuthGuard)
   @Post('register')
-  @UseInterceptors(EncryptionInterceptor)
+  @UseInterceptors(DecryptionInterceptor, EncryptionInterceptor)
   async registerPublicKey(
     @Request() req: userKeyService.AuthenticatedRequest,
     @Body(ValidationPipe) registerKeyDto: RegisterKeyDto,

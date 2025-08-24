@@ -72,22 +72,25 @@ export class UserKeyService {
   }
 
   async deactivateExpiredUserKeys(): Promise<void> {
-    await this.userPublicKeyRepository.update(
+    const updateResult = await this.userPublicKeyRepository.update(
       {
         expiresAt: LessThan(new Date()),
       },
       { isActive: false },
     );
+    if (updateResult?.affected) {
+      this.logger.log(`Deactivated ${updateResult.affected} expired user keys`);
+    }
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_MINUTE)
   async handleUserKeyExpiration() {
-    this.logger.log('Running UserKey expiration check...');
+    this.logger.debug('Running UserKey expiration check...');
 
     try {
       await this.deactivateExpiredUserKeys();
 
-      this.logger.log('UserKey expiration check completed');
+      this.logger.debug('UserKey expiration check completed');
     } catch (error) {
       this.logger.error('Error during UserKey expiration check', error);
     }

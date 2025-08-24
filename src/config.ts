@@ -26,7 +26,6 @@ export interface ServerConfig {
 
 export interface ServerKeyConfig {
   expireIn: string;
-  rotationCutoff: string;
 }
 export interface EncryptionConfig {
   databaseMasterKey: string;
@@ -62,7 +61,6 @@ function config(): Config {
       allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001').split(','),
       privateKey: {
         expireIn: process.env.EXPIRE_PRIVATE_KEY_IN || '24h',
-        rotationCutoff: process.env.ROTATION_CUTOFF || '1h',
       }
     },
     encryption: {

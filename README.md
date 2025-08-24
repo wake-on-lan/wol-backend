@@ -123,7 +123,6 @@ JWT_EXPIRES_IN=24h
 
 # Server Key Configuration
 EXPIRE_PRIVATE_KEY_IN=24h
-ROTATION_CUTOFF_MS=1h
 ```
 
 ### Generate Database Master Key
@@ -453,7 +452,6 @@ DATABASE_LOGGING=false
 PORT=3000
 ALLOWED_ORIGINS=https://yourdomain.com
 EXPIRE_PRIVATE_KEY_IN=24h
-ROTATION_CUTOFF=1h
 ```
 
 ### Production User Management

@@ -46,17 +46,10 @@ export class ServerKeyService implements OnModuleInit {
         isActive: true,
       },
     });
-    
-    const needsRotation =
-      !key ||
-      now.getTime() + this.parseDuration(this.serverKeyConfig.rotationCutoff) >=
-        key.expiresAt.getTime();
 
-    if (needsRotation) {
-      if (key) {
-        await this.repository.delete(key.id);
-        this.logger.log(`Deleted old server key (ID: ${key.id})`);
-      }
+    if (key && key.expiresAt && key?.expiresAt <= now) {
+      await this.repository.delete(key.id);
+      this.logger.debug(`Deleted old server key (ID: ${key.id})`);
 
       this.cachedKey = await this.createKey();
       this.logger.log(`Generated new server key (ID: ${this.cachedKey.id})`);
@@ -72,12 +65,14 @@ export class ServerKeyService implements OnModuleInit {
     const expiresAt = new Date(
       Date.now() + this.parseDuration(this.serverKeyConfig.expireIn),
     );
+    
     const newKey = this.repository.create({
       publicKeyPem: publicKey,
       privateKeyPem: privateKey,
       expiresAt,
       isActive: true,
     });
+
     return await this.repository.save(newKey);
   }
 
@@ -106,12 +101,12 @@ export class ServerKeyService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async handleServerKeyRotation() {
-    this.logger.log('Checking ServerKey rotation...');
+    this.logger.debug('Checking ServerKey rotation...');
 
     try {
       await this.rotateKeyIfNeeded();
 
-      this.logger.log('ServerKey rotation check completed');
+      this.logger.debug('ServerKey rotation check completed');
     } catch (error) {
       this.logger.error('Error during ServerKey rotation check', error);
     }
