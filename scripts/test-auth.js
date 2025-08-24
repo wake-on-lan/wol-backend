@@ -75,14 +75,16 @@ class AuthTestClient {
 
   encryptRSA(data, publicKey) {
     const buffer = Buffer.from(data, 'base64');
-    return crypto.publicEncrypt(
-      {
-        key: publicKey,
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHash: 'sha256',
-      },
-      buffer
-    ).toString('base64');
+    return crypto
+      .publicEncrypt(
+        {
+          key: publicKey,
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+          oaepHash: 'sha256',
+        },
+        buffer,
+      )
+      .toString('base64');
   }
 
   // --- Encryption / Decryption ---
@@ -117,7 +119,7 @@ class AuthTestClient {
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
           oaepHash: 'sha256',
         },
-        Buffer.from(key, 'base64')
+        Buffer.from(key, 'base64'),
       );
 
       const decryptedIv = crypto.privateDecrypt(
@@ -126,13 +128,13 @@ class AuthTestClient {
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
           oaepHash: 'sha256',
         },
-        Buffer.from(iv, 'base64')
+        Buffer.from(iv, 'base64'),
       );
 
       const decipher = crypto.createDecipheriv(
         'aes-256-cbc',
         Buffer.from(decryptedKey, 'hex'),
-        Buffer.from(decryptedIv, 'hex')
+        Buffer.from(decryptedIv, 'hex'),
       );
 
       let decrypted = decipher.update(data, 'base64', 'utf-8');
@@ -197,22 +199,40 @@ class AuthTestClient {
 
   async testLogin(username, password) {
     console.log(`\n🔐 Testing login endpoint with username: ${username}`);
-    
+
     try {
-      const res = await this.makeRequest('POST', '/auth/login', { username, password });
+      let res = await this.makeRequest(
+        'POST',
+        '/auth/login',
+        this.encrypt(
+          {
+            username,
+            password,
+            publicKey: this.clientKeyPair.publicKey,
+          },
+          this.serverPublicKey,
+        ),
+      );
 
       console.log(`   Response status: ${res.status}`);
-      
-      if (res.status === 201 && res.data.access_token) {
-        this.accessToken = res.data.access_token;
+      const decryptMessage = this.decrypt(res.data, this.clientKeyPair.privateKey);
+      const decryptedResult = JSON.parse(decryptMessage);
+      if (res.status === 201 && decryptedResult && decryptedResult.access_token) {
+        this.accessToken = decryptedResult.access_token;
         console.log('✅ Login successful');
-        console.log(`   Token length: ${res.data.access_token.length} characters`);
-        console.log(`   Token preview: ${res.data.access_token.substring(0, 50)}...`);
-        return res.data;
+        console.log(
+          `   Token length: ${decryptedResult.access_token.length} characters`,
+        );
+        console.log(
+          `   Token preview: ${decryptedResult.access_token.substring(0, 50)}...`,
+        );
+        return decryptedResult;
       } else {
         console.log('❌ Login failed');
         console.log(`   Error: ${JSON.stringify(res.data, null, 2)}`);
-        throw new Error(`Login failed: ${res.status} - ${JSON.stringify(res.data)}`);
+        throw new Error(
+          `Login failed: ${res.status} - ${JSON.stringify(res.data)}`,
+        );
       }
     } catch (err) {
       console.log('❌ Login request failed');
@@ -223,7 +243,7 @@ class AuthTestClient {
 
   async testGetServerPublicKey() {
     console.log(`\n🗝️  Testing server public key endpoint`);
-    
+
     try {
       const res = await this.makeRequest('GET', '/keys/server-public');
 
@@ -233,12 +253,16 @@ class AuthTestClient {
         this.serverPublicKey = res.data.publicKey;
         console.log('✅ Server public key retrieved successfully');
         console.log(`   Key length: ${res.data.publicKey.length} characters`);
-        console.log(`   Key preview: ${res.data.publicKey.substring(0, 100)}...`);
+        console.log(
+          `   Key preview: ${res.data.publicKey.substring(0, 100)}...`,
+        );
         return res.data;
       } else {
         console.log('❌ Failed to get server public key');
         console.log(`   Error: ${JSON.stringify(res.data, null, 2)}`);
-        throw new Error(`Failed to get server public key: ${res.status} - ${JSON.stringify(res.data)}`);
+        throw new Error(
+          `Failed to get server public key: ${res.status} - ${JSON.stringify(res.data)}`,
+        );
       }
     } catch (err) {
       console.log('❌ Server public key request failed');
@@ -266,23 +290,32 @@ class AuthTestClient {
       if (res.status === 201) {
         const { data, key, iv } = res.data;
         console.log('✅ Public key registration successful');
-        
+
         if (data && key && iv) {
           console.log('🔓 Decrypting registration response...');
-          const decrypted = this.decrypt(res.data, this.clientKeyPair.privateKey);
+          const decrypted = this.decrypt(
+            res.data,
+            this.clientKeyPair.privateKey,
+          );
           const decryptedData = JSON.parse(decrypted);
           console.log('✅ Response decrypted successfully');
-          console.log(`   Registration data: ${JSON.stringify(decryptedData, null, 2)}`);
+          console.log(
+            `   Registration data: ${JSON.stringify(decryptedData, null, 2)}`,
+          );
           return decryptedData;
         } else {
           console.log('ℹ️  Response was not encrypted (development mode)');
-          console.log(`   Registration data: ${JSON.stringify(res.data, null, 2)}`);
+          console.log(
+            `   Registration data: ${JSON.stringify(res.data, null, 2)}`,
+          );
           return res.data;
         }
       } else {
         console.log('❌ Failed to register public key');
         console.log(`   Error: ${JSON.stringify(res.data, null, 2)}`);
-        throw new Error(`Failed to register public key: ${res.status} - ${JSON.stringify(res.data)}`);
+        throw new Error(
+          `Failed to register public key: ${res.status} - ${JSON.stringify(res.data)}`,
+        );
       }
     } catch (err) {
       console.log('❌ Public key registration request failed');
@@ -306,10 +339,13 @@ class AuthTestClient {
       if (res.status === 200) {
         const { data, key, iv } = res.data;
         console.log('✅ My-key endpoint successful');
-        
+
         if (data && key && iv) {
           console.log('🔓 Decrypting my-key response...');
-          const decrypted = this.decrypt(res.data, this.clientKeyPair.privateKey);
+          const decrypted = this.decrypt(
+            res.data,
+            this.clientKeyPair.privateKey,
+          );
           const decryptedData = JSON.parse(decrypted);
           console.log('✅ Response decrypted successfully');
           console.log(`   Key data: ${JSON.stringify(decryptedData, null, 2)}`);
@@ -322,7 +358,9 @@ class AuthTestClient {
       } else {
         console.log('❌ Failed to get my-key');
         console.log(`   Error: ${JSON.stringify(res.data, null, 2)}`);
-        throw new Error(`Failed to get my-key: ${res.status} - ${JSON.stringify(res.data)}`);
+        throw new Error(
+          `Failed to get my-key: ${res.status} - ${JSON.stringify(res.data)}`,
+        );
       }
     } catch (err) {
       console.log('❌ My-key request failed');
@@ -340,11 +378,11 @@ class AuthTestClient {
       // Step 1: Generate client key pair
       this.generateClientKeyPair();
 
+      await this.testGetServerPublicKey();
       // Step 2: Test login
       await this.testLogin(this.config.username, this.config.password);
 
       // Step 3: Get server public key
-      await this.testGetServerPublicKey();
 
       // Step 4: Register client public key
       await this.testRegisterPublicKey();
@@ -352,14 +390,15 @@ class AuthTestClient {
       // Step 5: Test my-key endpoint
       await this.testGetMyKey();
 
-      console.log('\n🎉 All authentication and key management tests completed successfully!');
+      console.log(
+        '\n🎉 All authentication and key management tests completed successfully!',
+      );
       console.log('\n📋 Test Summary:');
       console.log('   ✅ Login endpoint working');
       console.log('   ✅ Server public key retrieval working');
       console.log('   ✅ Public key registration working');
       console.log('   ✅ My-key endpoint working');
       console.log('   ✅ Encryption/decryption working');
-
     } catch (err) {
       console.error('\n❌ Authentication test failed:', err.message);
       process.exit(1);
