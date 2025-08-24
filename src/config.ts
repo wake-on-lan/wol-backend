@@ -3,6 +3,7 @@ export interface Config {
   jwt: JWTConfig;
   server: ServerConfig;
   encryption: EncryptionConfig;
+  domain: string;
 }
 
 export interface DatabaseConfig {
@@ -37,11 +38,13 @@ function config(): Config {
   if (!masterKey) {
     throw new Error(
       'DATABASE_MASTER_KEY environment variable is required for database encryption. ' +
-      'Generate one using: openssl rand -hex 32'
+        'Generate one using: openssl rand -hex 32',
     );
   }
   if (masterKey.length !== 64) {
-    throw new Error('DATABASE_MASTER_KEY must be 64 characters (32 bytes) in hex format');
+    throw new Error(
+      'DATABASE_MASTER_KEY must be 64 characters (32 bytes) in hex format',
+    );
   }
 
   return {
@@ -52,20 +55,25 @@ function config(): Config {
       logging: process.env.DATABASE_LOGGING === 'true' || false,
     },
     jwt: {
-      secret: process.env.JWT_SECRET || 'secure-jwt-secret-key-change-in-production',
+      secret:
+        process.env.JWT_SECRET || 'secure-jwt-secret-key-change-in-production',
       expiresIn: process.env.JWT_EXPIRES_IN || '24h',
     },
     server: {
       port: parseInt(process.env.PORT || '3000'),
       nodeEnv: process.env.NODE_ENV || 'development',
-      allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001').split(','),
+      allowedOrigins: (
+        process.env.ALLOWED_ORIGINS ||
+        'http://localhost:3000,http://localhost:3001'
+      ).split(','),
       privateKey: {
         expireIn: process.env.EXPIRE_PRIVATE_KEY_IN || '24h',
-      }
+      },
     },
     encryption: {
       databaseMasterKey: masterKey,
     },
+    domain: process.env.DOMAIN || 'localhost',
   };
 }
 
