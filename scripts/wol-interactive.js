@@ -216,8 +216,9 @@ class EncryptedAPIClient {
   // --- API Workflow ---
 
   async login(username, password) {
-    const res = await this.makeRequest('POST', '/auth/login', { username, password });
-
+    const res = await this.makeRequest('POST', '/auth/login', this.encrypt({ username, password, publicKey: this.clientKeyPair.publicKey }, this.serverPublicKey));
+    const encrypted = this.decrypt(res.data, this.clientKeyPair.privateKey);
+    res.data = JSON.parse(encrypted);
     if (res.status === 201 && res.data.access_token) {
       this.accessToken = res.data.access_token;
       return res.data;
@@ -334,8 +335,8 @@ class EncryptedAPIClient {
 
   async initialize() {
     this.generateClientKeyPair();
-    await this.login(this.config.username, this.config.password);
     await this.getServerPublicKey();
+    await this.login(this.config.username, this.config.password);
     await this.registerPublicKey();
   }
 

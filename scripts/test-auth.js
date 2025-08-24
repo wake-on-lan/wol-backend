@@ -378,11 +378,11 @@ class AuthTestClient {
       // Step 1: Generate client key pair
       this.generateClientKeyPair();
 
+      // Step 2: Get server public key
       await this.testGetServerPublicKey();
-      // Step 2: Test login
-      await this.testLogin(this.config.username, this.config.password);
 
-      // Step 3: Get server public key
+      // Step 3: Test login
+      await this.testLogin(this.config.username, this.config.password);
 
       // Step 4: Register client public key
       await this.testRegisterPublicKey();
