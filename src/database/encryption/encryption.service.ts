@@ -67,7 +67,7 @@ export class EncryptionService {
       
       let decrypted = decipher.update(encrypted, undefined, 'utf-8');
       decrypted += decipher.final('utf-8');
-      this.logger.log('Decrypted data successfully');
+      
       return decrypted;
     } catch (error) {
       this.logger.error('Failed to decrypt data', error);
