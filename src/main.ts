@@ -18,14 +18,15 @@ async function bootstrap() {
     }),
   );
 
+  const allowedOrigins = configService.get<string[]>('server.allowedOrigins');
   app.enableCors({
-    origin: configService.get('server.allowedOrigins'),
+    origin: allowedOrigins,
     credentials: true,
   });
 
   const port = configService.get('server.port');
   await app.listen(port);
-
+  Logger.log(`Allowed Origins: ${allowedOrigins}`);
   Logger.log(`🚀 Encrypted Relay Server running on port ${port}`);
   Logger.log(`📊 Environment: ${configService.get('server.nodeEnv')}`);
   Logger.log(`🗄️  Database seeding runs automatically on startup`);

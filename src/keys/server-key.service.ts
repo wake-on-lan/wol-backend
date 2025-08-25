@@ -47,7 +47,10 @@ export class ServerKeyService implements OnModuleInit {
       },
     });
 
-    if (key && key.expiresAt && key?.expiresAt <= now) {
+    if (!key) {
+      this.cachedKey = await this.createKey();
+      this.logger.log(`Generated initial server key (ID: ${this.cachedKey.id})`);
+    } else if (key.expiresAt && key.expiresAt <= now) {
       await this.repository.delete(key.id);
       this.logger.debug(`Deleted old server key (ID: ${key.id})`);
 
@@ -55,17 +58,17 @@ export class ServerKeyService implements OnModuleInit {
       this.logger.log(`Generated new server key (ID: ${this.cachedKey.id})`);
     } else {
       this.cachedKey = key;
-      this.logger.debug(`Loaded existing server key (ID: ${key?.id})`);
+      this.logger.debug(`Loaded existing server key (ID: ${key.id})`);
     }
   }
 
-  private async createKey(): Promise<ServerKey> {
+  public async createKey(): Promise<ServerKey> {
     const { publicKey, privateKey } = CryptoUtil.generateKeyPair();
 
     const expiresAt = new Date(
       Date.now() + this.parseDuration(this.serverKeyConfig.expireIn),
     );
-    
+
     const newKey = this.repository.create({
       publicKeyPem: publicKey,
       privateKeyPem: privateKey,

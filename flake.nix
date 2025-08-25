@@ -27,7 +27,7 @@
             yarn
             python3
             node-gyp
-            nodejs_20
+            nodejs_22
             claude-code
           ];
         };
