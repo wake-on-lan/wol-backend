@@ -3,14 +3,14 @@ Description=WakeOnLAN Backend Service
 After=network.target
 
 [Service]
-ExecStart=/bin/bash -c 'cd /home/wakeonlan/wol-backend && source .env && node dist/main'
-WorkingDirectory=/home/wakeonlan/wol-backend
-User=wakeonlan
-Group=wakeonlan
+ExecStart=/bin/bash -c 'cd /home/nodeapp/wol-backend && source .env && node dist/main'
+WorkingDirectory=/home/nodeapp/wol-backend
+User=nodeapp
+Group=nodeapp
 Restart=always
-StandardOutput=append:/var/log/wol-backend.log
-StandardError=append:/var/log/wol-backend.err
-EnvironmentFile=/home/wakeonlan/wol-backend/.env
+StandardOutput=truncate:/var/log/wol-backend.log
+StandardError=truncate:/var/log/wol-backend.err
+EnvironmentFile=/home/nodeapp/wol-backend/.env
 
 [Install]
 WantedBy=multi-user.target
