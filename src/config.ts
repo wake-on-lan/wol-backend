@@ -3,7 +3,6 @@ export interface Config {
   jwt: JWTConfig;
   server: ServerConfig;
   encryption: EncryptionConfig;
-  domain: string;
 }
 
 export interface DatabaseConfig {
@@ -73,7 +72,6 @@ function config(): Config {
     encryption: {
       databaseMasterKey: masterKey,
     },
-    domain: process.env.DOMAIN || 'localhost',
   };
 }
 
