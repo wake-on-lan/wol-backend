@@ -7,6 +7,7 @@ LOG_FILE="/tmp/yarn_install.log"
 EXIT_CODE_FILE="/tmp/yarn_exit_code"
 SCREEN_SESSION="yarn_install"
 DEPLOY_USER=$(whoami)
+YARN=$(which yarn)
 # Cleanup any existing files
 rm -f "$LOG_FILE" "$EXIT_CODE_FILE"
 
@@ -18,7 +19,7 @@ echo "Starting yarn install in screen session..."
 # Start yarn install in screen with logging
 screen -dmS "$SCREEN_SESSION" -L -Logfile "$LOG_FILE" bash -c "
     cd /home/${DEPLOY_USER}/wol-backend
-    yarn install --production --frozen-lockfile --network-timeout 1800000
+    $YARN install --production --frozen-lockfile --network-timeout 1800000
     echo \$? > $EXIT_CODE_FILE
 "
 
