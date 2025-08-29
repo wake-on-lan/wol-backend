@@ -75,6 +75,7 @@ export class UserKeyService {
     const updateResult = await this.userPublicKeyRepository.update(
       {
         expiresAt: LessThan(new Date()),
+        isActive: true,
       },
       { isActive: false },
     );
