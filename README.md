@@ -5,6 +5,7 @@ A secure NestJS-based backend service that provides authenticated Wake-on-LAN fu
 ## Features
 
 ### Core Functionality
+
 - **Wake-on-LAN**: Send magic packets to wake up remote devices
 - **Network Scanning**: Discover devices on the local network using broadcast scans
 - **Host Monitoring**: Check host availability via ping and HTTPS connectivity
@@ -17,6 +18,7 @@ A secure NestJS-based backend service that provides authenticated Wake-on-LAN fu
 - **SystemD Integration**: Production-ready service configuration
 
 ### Security Model
+
 - **Client-Generated Keys**: Users generate RSA key pairs locally (private keys never transmitted)
 - **Public Key Registration**: Only public keys are registered with the server
 - **Automatic Key Rotation**: Server keys rotate every 24 hours
@@ -28,7 +30,7 @@ A secure NestJS-based backend service that provides authenticated Wake-on-LAN fu
 - **Framework**: NestJS (Node.js)
 - **Database**: SQLite with TypeORM
 - **Authentication**: JWT with Passport
-- **Encryption**: 
+- **Encryption**:
   - RSA-2048 for message encryption
   - AES-256-GCM for database encryption
   - bcrypt for password hashing
@@ -38,30 +40,47 @@ A secure NestJS-based backend service that provides authenticated Wake-on-LAN fu
 ## API Endpoints
 
 ### Authentication
-- `POST /auth/login` - Authenticate user with username/password and receive JWT token
+
+- `POST /auth/login` - Authenticate user with username/password/publicKey (encrypted request/response, registers client key)
 
 ### Key Management
-- `GET /keys/server-public` - Get server's current public key (requires auth)
-- `POST /keys/register` - Register client's public key (requires auth, encrypted response)
+
+- `GET /keys/server-public` - Get server's current public key (no auth required)
+- `POST /keys/register` - Re-register client's public key (requires auth, encrypted response)
 - `GET /keys/my-key` - Get current user's registered key info (requires auth, encrypted response)
 
 ### Commands (All require authentication and registered public key)
+
 - `GET /commands/scan-devices` - Scan local network for devices (encrypted response)
 - `POST /commands/wake-on-lan` - Send Wake-on-LAN magic packet (encrypted request/response)
 - `POST /commands/shell` - Execute remote SSH commands (encrypted request/response)
-- `GET /commands/up?hostname=<host>` - Ping a hostname (encrypted response)
+- `GET /commands/ping?hostname=<host>` - Ping a hostname (encrypted response)
 - `GET /commands/checkHttpsAvailability?hostname=<host>` - Check HTTPS availability (encrypted response)
 
 ### Request/Response Formats
 
+All API payloads (except `GET /keys/server-public`) are encrypted using hybrid RSA+AES encryption. The examples below show the **plaintext** structure before encryption.
+
+**LoginDto:**
+
+```json
+{
+  "username": "admin",
+  "password": "admin123",
+  "publicKey": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+}
+```
+
 **WakeOnLanDto:**
+
 ```json
 {
   "macAddress": "XX:XX:XX:XX:XX:XX"
 }
 ```
 
-**ShellCommandDto:**
+**ShellCommandDto (password or privateKey required):**
+
 ```json
 {
   "host": "192.168.1.100",
@@ -73,12 +92,11 @@ A secure NestJS-based backend service that provides authenticated Wake-on-LAN fu
 }
 ```
 
-**Note**: All command endpoints require authentication and encryption. Responses are encrypted with the user's registered public key.
-
 ## Quick Start
 
 ### Prerequisites
-- Node.js 16+ 
+
+- Node.js 16+
 - yarn
 
 ### Installation
@@ -107,7 +125,7 @@ NODE_ENV=development
 # CORS Configuration
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 
-# Database Configuration  
+# Database Configuration
 DATABASE_TYPE=better-sqlite3
 DATABASE_PATH=encrypted-relay.db
 DATABASE_SYNCHRONIZE=true
@@ -138,7 +156,7 @@ openssl rand -hex 32
 # Development mode with hot reload
 yarn start:dev
 
-# Production mode  
+# Production mode
 yarn start:prod
 
 # Standard mode
@@ -151,11 +169,11 @@ The server will start on port 3000 (or your configured PORT).
 
 The application creates test users on first startup:
 
-| Username | Password | Description |
-|----------|----------|-------------|
+| Username | Password | Description           |
+| -------- | -------- | --------------------- |
 | admin    | admin123 | Administrator account |
 | user     | user123  | Standard user account |
-| testuser | test123  | Test user account |
+| testuser | test123  | Test user account     |
 
 **Important**: Change these passwords in production!
 
@@ -171,70 +189,75 @@ All sensitive fields are automatically encrypted using AES-256-GCM.
 
 ## Usage Examples
 
-### 1. Authentication
+Since all API endpoints use hybrid encryption, the recommended way to interact with the server is through the included utility scripts (see [Utility Scripts](#utility-scripts)). The examples below show the **logical flow** with plaintext payloads for reference.
+
+### 1. Get Server Public Key
 
 ```bash
-curl -X POST http://localhost:3000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin",
-    "password": "admin123"
-  }'
+# This is the only unencrypted endpoint
+curl -X GET http://localhost:3000/keys/server-public
 ```
 
-Response:
+### 2. Authentication
+
+Login requires `username`, `password`, and your RSA `publicKey`. The request must be encrypted with the server's public key.
+
+Plaintext payload:
+
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIs...",
-  "user": {
-    "id": 1,
-    "username": "admin"
-  }
+  "username": "admin",
+  "password": "admin123",
+  "publicKey": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
 }
 ```
 
-### 2. Register Public Key
+Decrypted response:
 
-Before sending commands, register your public key:
-
-```bash
-curl -X POST http://localhost:3000/keys/register \
-  -H "Authorization: Bearer <your-jwt-token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----"
-  }'
+```json
+{
+  "access_token": "REDACTED_JWT",
+  "userId": 1
+}
 ```
 
-### 3. Wake-on-LAN
+The server automatically registers your public key during login.
 
-```bash
-curl -X POST http://localhost:3000/commands/wake-on-lan \
-  -H "Authorization: Bearer <your-jwt-token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "macAddress": "00:11:22:33:44:55",
-    "ipAddress": "192.168.1.100",
-    "port": 9
-  }'
+### 3. Wake-on-LAN (encrypted)
+
+```json
+{
+  "macAddress": "00:11:22:33:44:55"
+}
 ```
 
-### 4. Network Scan
+### 4. Network Scan (encrypted)
+
+```
+GET /commands/scan-devices
+Authorization: Bearer <your-jwt-token>
+```
+
+### Interactive Client
+
+For easy interaction with full encryption handled automatically:
 
 ```bash
-curl -X GET http://localhost:3000/commands/scan-devices \
-  -H "Authorization: Bearer <your-jwt-token>"
+node scripts/wol-interactive.js
 ```
 
 ## Encryption Workflow
 
 ### Initial Setup
+
 1. Client generates RSA key pair locally
-2. Client authenticates with username/password
-3. Client registers public key with server
-4. Client retrieves server's current public key
+2. Client retrieves server's current public key (`GET /keys/server-public`)
+3. Client encrypts login payload (username, password, publicKey) with server's public key
+4. Server decrypts, validates credentials, and registers client's public key
+5. Server encrypts JWT response with client's public key
 
 ### Command Processing
+
 1. Client encrypts command with server's public key
 2. Server decrypts command with its private key
 3. Server processes command
@@ -242,19 +265,22 @@ curl -X GET http://localhost:3000/commands/scan-devices \
 5. Client decrypts response with its private key
 
 ### Key Management
+
 - Server keys rotate automatically every 24 hours
 - User keys expire after 24 hours
-- Grace period warnings sent before expiration
 - Expired keys are automatically deactivated
+- Re-registration available via `POST /keys/register` or by logging in again
 
 ## Utility Scripts
 
 The `/scripts` directory contains powerful utility scripts for testing, user management, and interactive operations:
 
 ### wol-interactive.js
+
 **Interactive multi-function client** - The main utility script providing menu-driven or direct access to all server functionality.
 
 #### Interactive Menu Mode (Default)
+
 ```bash
 # Launch interactive menu
 node scripts/wol-interactive.js
@@ -264,6 +290,7 @@ node scripts/wol-interactive.js --url http://192.168.1.100:3000 --username admin
 ```
 
 #### Direct Action Mode
+
 ```bash
 # Wake-on-LAN: Scan devices and select one to wake
 node scripts/wol-interactive.js --action wake
@@ -282,6 +309,7 @@ node scripts/wol-interactive.js --help
 ```
 
 #### Available Options
+
 - `-u, --url <url>` - Base URL of the WOL server (default: http://localhost:3000)
 - `--username <username>` - Username for authentication (default: admin)
 - `--password <password>` - Password for authentication (default: admin123)
@@ -289,6 +317,7 @@ node scripts/wol-interactive.js --help
 - `--hostname <hostname>` - Hostname for https/ping actions (not supported for command action)
 
 **Features:**
+
 - Full end-to-end encryption workflow automation
 - Device discovery and interactive selection
 - Host availability monitoring
@@ -297,6 +326,7 @@ node scripts/wol-interactive.js --help
 - Complete error handling and status reporting
 
 ### test-auth.js
+
 Comprehensive testing script for authentication and key management endpoints. Tests the complete auth workflow including login, key exchange, and encrypted responses.
 
 ```bash
@@ -311,17 +341,20 @@ node scripts/test-auth.js --help
 ```
 
 **Available Options:**
+
 - `-u, --url <url>` - Base URL of the WOL server (default: http://localhost:3000)
 - `--username <username>` - Username for authentication (default: admin)
 - `--password <password>` - Password for authentication (default: admin123)
 
 **Test Coverage:**
+
 - `POST /auth/login` - User authentication with username/password
 - `GET /keys/server-public` - Server public key retrieval
 - `POST /keys/register` - Client public key registration
 - `GET /keys/my-key` - User's registered key information
 
 **Features:**
+
 - Complete RSA key pair generation and management
 - Full encryption/decryption workflow testing
 - Detailed test output with step-by-step results
@@ -329,6 +362,7 @@ node scripts/test-auth.js --help
 - Compatible with both development and production environments
 
 ### encrypt-users.js
+
 Encrypts user data for secure production deployment.
 
 ```bash
@@ -343,6 +377,7 @@ node scripts/encrypt-users.js --help
 ```
 
 **Input JSON format:**
+
 ```json
 {
   "users": [
@@ -359,6 +394,7 @@ node scripts/encrypt-users.js --help
 ```
 
 **Features:**
+
 - AES-256-GCM encryption with PBKDF2 key derivation
 - Batch user creation for production deployment
 - Secure credential management
@@ -478,6 +514,7 @@ sudo chown wakeonlan:wakeonlan /home/wakeonlan/wol-backend/users.encrypted.json
 ## Architecture
 
 ### Modules
+
 - **AppModule**: Main application orchestrator integrating all modules with global middleware
 - **AuthModule**: JWT authentication, user validation, and Passport strategy implementation
 - **KeysModule**: RSA key generation, automatic rotation (24h), and hybrid encryption management
@@ -487,12 +524,14 @@ sudo chown wakeonlan:wakeonlan /home/wakeonlan/wol-backend/users.encrypted.json
 ### Database Schema
 
 **User Entity:**
+
 - `id` (Primary Key)
 - `username` (Unique, not encrypted)
 - `passwordHash` (bcrypt hashed)
 - `createdAt` (Timestamp)
 
 **UserPublicKey Entity:**
+
 - `id` (Primary Key)
 - `userId` (Foreign Key → User)
 - `publicKeyPem` (RSA public key, encrypted at rest)
@@ -501,6 +540,7 @@ sudo chown wakeonlan:wakeonlan /home/wakeonlan/wol-backend/users.encrypted.json
 - `createdAt` (Timestamp)
 
 **ServerKey Entity:**
+
 - `id` (Primary Key)
 - `publicKeyPem` (RSA public key, encrypted at rest)
 - `privateKeyPem` (RSA private key, encrypted at rest)
@@ -511,6 +551,7 @@ sudo chown wakeonlan:wakeonlan /home/wakeonlan/wol-backend/users.encrypted.json
 ### Security Architecture
 
 **Encryption Layers:**
+
 1. **Transport Security**: HTTPS/TLS (reverse proxy recommended)
 2. **Message Security**: RSA-2048 + AES-256-CBC hybrid encryption
 3. **Database Security**: AES-256-GCM encryption for sensitive fields
@@ -518,6 +559,7 @@ sudo chown wakeonlan:wakeonlan /home/wakeonlan/wol-backend/users.encrypted.json
 5. **Key Management**: Automated rotation with 1-hour grace period
 
 **Security Features:**
+
 - Input validation with class-validator
 - Global exception handling with sanitized error responses
 - CORS protection with configurable origins
@@ -531,4 +573,4 @@ sudo chown wakeonlan:wakeonlan /home/wakeonlan/wol-backend/users.encrypted.json
 
 ## License
 
-UNLICENSED - Private project
+UNLICENSED
