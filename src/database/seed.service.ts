@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { User } from './entities/user.entity';
@@ -63,7 +63,7 @@ export class SeedService implements OnModuleInit {
 
       // Try to load users from encrypted JSON file in production
       let users = await this.loadEncryptedUsers();
-      
+
       // Fall back to default users if no encrypted file or not in production
       if (!users || users.length === 0) {
         users = [
@@ -92,16 +92,21 @@ export class SeedService implements OnModuleInit {
 
   private async loadEncryptedUsers(): Promise<SeedUser[]> {
     // Only load encrypted users in production
-    const nodeEnv = this.configService.get<string>('server.nodeEnv') || 'development';
+    const nodeEnv =
+      this.configService.get<string>('server.nodeEnv') || 'development';
     if (nodeEnv !== 'production') {
-      this.logger.log('Not in production environment, skipping encrypted user file');
+      this.logger.log(
+        'Not in production environment, skipping encrypted user file',
+      );
       return [];
     }
 
     const encryptedFilePath = path.join(process.cwd(), 'users.encrypted.json');
-    
+
     if (!fs.existsSync(encryptedFilePath)) {
-      this.logger.warn('Encrypted users file not found at: ' + encryptedFilePath);
+      this.logger.warn(
+        'Encrypted users file not found at: ' + encryptedFilePath,
+      );
       return [];
     }
 
@@ -118,15 +123,21 @@ export class SeedService implements OnModuleInit {
       // Validate user data structure
       for (const user of seedData.users) {
         if (!user.username || !user.password) {
-          throw new Error('Invalid user data: username and password are required');
+          throw new Error(
+            'Invalid user data: username and password are required',
+          );
         }
       }
 
-      this.logger.log(`Loaded ${seedData.users.length} users from encrypted file`);
+      this.logger.log(
+        `Loaded ${seedData.users.length} users from encrypted file`,
+      );
       return seedData.users;
     } catch (error) {
       this.logger.error('Failed to load encrypted users file', error);
-      throw new Error('Unable to decrypt users file. Please check the encryption key and file format.');
+      throw new Error(
+        'Unable to decrypt users file. Please check the encryption key and file format.',
+      );
     }
   }
 }
